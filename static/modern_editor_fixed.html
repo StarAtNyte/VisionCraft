@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<!-- Cache buster: Two-column layout like screenshot v4.0 -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make3D Studio - AI Product Image Creator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#1a1a1a',
+                        'dark-surface': '#2d2d2d',
+                        'dark-border': '#404040',
+                        'dark-text': '#e5e5e5',
+                        'dark-text-secondary': '#a3a3a3',
+                        'primary': '#14b8a6'
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'slide-in': 'slideIn 0.3s ease-out',
+                        'slide-out': 'slideOut 0.3s ease-in'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateX(100%)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' }
+                        },
+                        slideOut: {
+                            '0%': { transform: 'translateX(0)', opacity: '1' },
+                            '100%': { transform: 'translateX(100%)', opacity: '0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html, body, #root {
+            width: 100%;
+            height: 100%;
+        }
+        button {
+            font-family: inherit;
+        }
+        input, textarea, select {
+            font-family: inherit;
+        }
+        .tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 50;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            background-color: #111827;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .tooltip-trigger:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        .gradient-primary {
+            background: linear-gradient(135deg, #14b8a6 0%, #8b5cf6 100%);
+        }
+        .gradient-secondary {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(45, 45, 45, 0.8);
+        }
+        .upload-zone {
+            border: 2px dashed #404040;
+            transition: all 0.3s ease;
+        }
+        .upload-zone:hover {
+            border-color: #14b8a6;
+            background-color: rgba(20, 184, 166, 0.05);
+        }
+        .upload-zone.dragover {
+            border-color: #14b8a6;
+            background-color: rgba(20, 184, 166, 0.1);
+        }
+        .sidebar-icon {
+            transition: all 0.2s ease;
+        }
+        .sidebar-icon:hover {
+            transform: translateY(-2px);
+        }
+        .tool-panel {
+            animation: slideIn 0.3s ease-out;
+        }
+        .tool-panel.closing {
+            animation: slideOut 0.3s ease-in;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.1) rotate(5deg); }
+            50% { transform: scale(1.15) rotate(5deg); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-dark-text">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        // Icon components using SVG directly
+        const Icons = {
+            Upload: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('circle', { cx: 12, cy: 12, r: 10 }),
+                React.createElement('polyline', { points: '8,12 12,8 16,12' }),
+                React.createElement('line', { x1: 12, y1: 8, x2: 12, y2: 16 })
+            ),
+            Sliders: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('line', { x1: 4, y1: 21, x2: 4, y2: 14 }),
+                React.createElement('line', { x1: 4, y1: 10, x2: 4, y2: 3 }),
+                React.createElement('line', { x1: 12, y1: 21, x2: 12, y2: 12 }),
+                React.createElement('line', { x1: 12, y1: 8, x2: 12, y2: 3 }),
+                React.createElement('line', { x1: 20, y1: 21, x2: 20, y2: 16 }),
+                React.createElement('line', { x1: 20, y1: 12, x2: 20, y2: 3 }),
+                React.createElement('line', { x1: 1, y1: 14, x2: 7, y2: 14 }),
+                React.createElement('line', { x1: 9, y1: 8, x2: 15, y2: 8 }),
+                React.createElement('line', { x1: 17, y1: 16, x2: 23, y2: 16 })
+            ),
+            Wand2: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('path', { d: 'm21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z' }),
+                React.createElement('path', { d: 'm14 7 3 3' }),
+                React.createElement('path', { d: 'M5 6v4' }),
+                React.createElement('path', { d: 'M19 14v4' }),
+                React.createElement('path', { d: 'M10 2v2' }),
+                React.createElement('path', { d: 'M7 8H3' }),
+                React.createElement('path', { d: 'M21 16h-4' }),
+                React.createElement('path', { d: 'M11 3H9' })
+            ),
+            Camera: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('rect', { x: 2, y: 3, width: 6, height: 6, rx: 1 }),
+                React.createElement('rect', { x: 9, y: 3, width: 6, height: 6, rx: 1 }),
+                React.createElement('rect', { x: 16, y: 3, width: 6, height: 6, rx: 1 }),
+                React.createElement('rect', { x: 2, y: 12, width: 6, height: 6, rx: 1 }),
+                React.createElement('rect', { x: 9, y: 12, width: 6, height: 6, rx: 1 }),
+                React.createElement('rect', { x: 16, y: 12, width: 6, height: 6, rx: 1 })
+            ),
+            Users: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('circle', { cx: 12, cy: 7, r: 3 }),
+                React.createElement('path', { d: 'M12 14c-4 0-7 2-7 5v2h14v-2c0-3-3-5-7-5z' }),
+                React.createElement('path', { d: 'M8 21l8-8M16 21l-8-8', opacity: 0.5 })
+            ),
+            Play: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('polygon', { points: '5,3 19,12 5,21' }),
+                React.createElement('path', { d: 'm22 6-3 3', opacity: 0.6 }),
+                React.createElement('path', { d: 'm22 12-3 3', opacity: 0.6 }),
+                React.createElement('path', { d: 'm22 18-3 3', opacity: 0.6 })
+            ),
+            Box: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('path', { d: 'M12 2L2 7v10l10 5 10-5V7L12 2z' }),
+                React.createElement('polyline', { points: '2,7 12,12 22,7' }),
+                React.createElement('line', { x1: 12, y1: 22, x2: 12, y2: 12 }),
+                React.createElement('path', { d: 'M17 4.5L7 9.5', opacity: 0.4 })
+            ),
+            Search: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('circle', { cx: 11, cy: 11, r: 8 }),
+                React.createElement('path', { d: 'M21 21l-4.35-4.35' })
+            ),
+            Download: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }),
+                React.createElement('polyline', { points: '7,10 12,15 17,10' }),
+                React.createElement('line', { x1: 12, y1: 15, x2: 12, y2: 3 })
+            ),
+            ChevronDown: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('polyline', { points: '6,9 12,15 18,9' })
+            ),
+            X: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('line', { x1: 18, y1: 6, x2: 6, y2: 18 }),
+                React.createElement('line', { x1: 6, y1: 6, x2: 18, y2: 18 })
+            ),
+            RotateCw: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('path', { d: 'M21 2v6h-6' }),
+                React.createElement('path', { d: 'M21 13a9 9 0 1 1-3-7.7L21 8' })
+            ),
+            Crop: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
+                React.createElement('path', { d: 'M6 2v14a2 2 0 0 0 2 2h14' }),
+                React.createElement('path', { d: 'M18 6H8a2 2 0 0 0-2 2v10' })
+            ),
+        };
+
+        // Main App Component
+        const App = () => {
+            const [activeToolId, setActiveToolId] = useState(null);
+            const [uploadedImage, setUploadedImage] = useState(null);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [processingText, setProcessingText] = useState('');
+            const [progress, setProgress] = useState(0);
+            const [panelClosing, setPanelClosing] = useState(false);
+
+            const tools = [
+                { id: 'upload', name: 'Upload/Import', icon: Icons.Upload, description: 'Upload images or import from URL' },
+                { id: 'basic', name: 'Basic Edits', icon: Icons.Sliders, description: 'Crop, rotate, adjust brightness & filters' },
+                { id: 'ai', name: 'AI Edits', icon: Icons.Wand2, description: 'AI-powered editing with Flux integration' },
+                { id: 'shots', name: 'Generate Shots', icon: Icons.Camera, description: 'Create multiple product variations' },
+                { id: 'lifestyle', name: 'Lifestyle Mockups', icon: Icons.Users, description: 'Show products in real environments' },
+                { id: 'animation', name: 'Animation', icon: Icons.Play, description: 'Create animated product videos' },
+                { id: '3d', name: '3D Mockups', icon: Icons.Box, description: 'Generate 3D product renders' },
+            ];
+
+            const handleToolClick = (toolId) => {
+                if (activeToolId === toolId) {
+                    setPanelClosing(true);
+                    setTimeout(() => {
+                        setActiveToolId(null);
+                        setPanelClosing(false);
+                    }, 300);
+                } else {
+                    setActiveToolId(toolId);
+                    setPanelClosing(false);
+                }
+            };
+
+            const closePanel = () => {
+                setPanelClosing(true);
+                setTimeout(() => {
+                    setActiveToolId(null);
+                    setPanelClosing(false);
+                }, 300);
+            };
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#111827' }}>
+                    {/* Top Navigation - Full Width */}
+                    <TopNavigation />
+
+                    {/* Main Content Area with Sidebar */}
+                    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', width: '100%' }}>
+                        {/* Left Sidebar */}
+                        <Sidebar 
+                            tools={tools} 
+                            activeToolId={activeToolId} 
+                            onToolClick={handleToolClick} 
+                        />
+
+                        {/* Main Content - Full remaining width */}
+                        <div style={{ flex: 1, display: 'flex', width: '100%', minWidth: 0 }}>
+                            <MainContent 
+                                uploadedImage={uploadedImage}
+                                setUploadedImage={setUploadedImage}
+                                isProcessing={isProcessing}
+                                processingText={processingText}
+                                progress={progress}
+                                setIsProcessing={setIsProcessing}
+                                setProcessingText={setProcessingText}
+                                setProgress={setProgress}
+                            />
+                        </div>
+
+                        {/* Tool Panel */}
+                        {activeToolId && (
+                            <ToolPanel 
+                                toolId={activeToolId}
+                                onClose={closePanel}
+                                uploadedImage={uploadedImage}
+                                setUploadedImage={setUploadedImage}
+                                setIsProcessing={setIsProcessing}
+                                setProcessingText={setProcessingText}
+                                setProgress={setProgress}
+                                isClosing={panelClosing}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Sidebar Component - Icons Only
+        const Sidebar = ({ tools, activeToolId, onToolClick }) => {
+            return (
+                <div style={{
+                    width: '72px',
+                    backgroundColor: '#1f2937',
+                    borderRight: '1px solid #374151',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    paddingTop: '24px',
+                    paddingBottom: '24px'
+                }}>
+                    {tools.map((tool, index) => {
+                        const isActive = activeToolId === tool.id;
+                        
+                        return (
+                            <div key={tool.id} style={{ 
+                                position: 'relative',
+                                marginBottom: index < tools.length - 1 ? '16px' : '0'
+                            }} className="tooltip-trigger">
+                                <button
+                                    onClick={() => onToolClick(tool.id)}
+                                    data-tool={tool.id}
+                                    style={{
+                                        width: '44px',
+                                        height: '44px',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all 0.2s ease',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        background: isActive 
+                                            ? 'linear-gradient(135deg, #14b8a6 0%, #8b5cf6 100%)'
+                                            : '#1a1a1a',
+                                        color: isActive ? '#ffffff' : '#a3a3a3',
+                                        boxShadow: isActive ? '0 4px 12px rgba(20, 184, 166, 0.3)' : 'none'
+                                    }}
+                                    className="sidebar-icon"
+                                    onMouseEnter={(e) => {
+                                        if (!isActive) {
+                                            e.target.style.backgroundColor = '#374151';
+                                            e.target.style.color = '#ffffff';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (!isActive) {
+                                            e.target.style.backgroundColor = '#1a1a1a';
+                                            e.target.style.color = '#a3a3a3';
+                                        }
+                                    }}
+                                >
+                                    <tool.icon style={{ width: '20px', height: '20px' }} />
+                                </button>
+                                <div className="tooltip" style={{
+                                    position: 'absolute',
+                                    left: '100%',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    marginLeft: '12px',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: '#1f2937',
+                                    border: '1px solid #374151',
+                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '2px'
+                                    }}>
+                                        <div style={{ fontWeight: '600', color: '#ffffff' }}>{tool.name}</div>
+                                        <div style={{ fontSize: '11px', color: '#9ca3af', maxWidth: '200px', lineHeight: '1.3' }}>{tool.description}</div>
+                                    </div>
+                                    <div style={{
+                                        position: 'absolute',
+                                        left: '-4px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '8px',
+                                        height: '8px',
+                                        backgroundColor: '#1f2937',
+                                        border: '1px solid #374151',
+                                        borderRight: 'none',
+                                        borderTop: 'none',
+                                        transform: 'translateY(-50%) rotate(45deg)'
+                                    }} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        // Top Navigation Component - Header matching dark theme
+        const TopNavigation = () => {
+            return (
+                <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-700 px-6 bg-gray-900">
+                    <div className="flex items-center gap-5">
+                        <div className="text-primary size-9 rounded-xl bg-primary/10 flex items-center justify-center shadow-lg">
+                            <Icons.Box style={{ width: '24px', height: '24px', color: 'currentColor' }} />
+                        </div>
+                        <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Make3D Studio</h2>
+                    </div>
+                    <div className="flex-1"></div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-4">
+                        <button className="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-all hover:bg-primary/90">
+                            <Icons.Upload style={{ width: '16px', height: '16px' }} />
+                            <span>Upload Image</span>
+                        </button>
+                        
+                        <button className="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg border border-gray-600 bg-transparent px-4 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700">
+                            <Icons.Download style={{ width: '16px', height: '16px' }} />
+                            <span>Download</span>
+                        </button>
+                        
+                        <div className="px-3 py-1 bg-yellow-500 text-black rounded-full text-xs font-medium">
+                            Free Trial
+                        </div>
+                        
+                        <button className="px-4 py-2 border border-gray-600 rounded-lg bg-transparent text-gray-300 cursor-pointer text-sm transition-all hover:bg-gray-700">
+                            Log In
+                        </button>
+                        
+                        <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 border-none rounded-lg text-white cursor-pointer text-sm font-medium transition-opacity hover:opacity-90">
+                            Sign Up
+                        </button>
+                    </div>
+                </header>
+            );
+        };
+
+        // Main Content Component - AI Generation and Upload Area
+        // Two-Column Editor Layout matching the screenshot
+        const MainContent = ({ uploadedImage, setUploadedImage, isProcessing, processingText, progress, setIsProcessing, setProcessingText, setProgress }) => {
+            const fileInputRef = useRef(null);
+            const [isDragOver, setIsDragOver] = useState(false);
+            const [prompt, setPrompt] = useState('');
+            const [showAdvanced, setShowAdvanced] = useState(false);
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                setIsDragOver(true);
+            };
+
+            const handleDragLeave = (e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileUpload(files[0]);
+                }
+            };
+
+            const handleFileUpload = (file) => {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        setUploadedImage(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleGenerate = async () => {
+                if (!prompt.trim()) {
+                    alert('Please enter a description for your image');
+                    return;
+                }
+
+                setIsProcessing(true);
+                setProcessingText('AI is generating your image...');
+                setProgress(0);
+
+                const interval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev >= 90) {
+                            clearInterval(interval);
+                            return 90;
+                        }
+                        return prev + 10;
+                    });
+                }, 500);
+
+                try {
+                    const response = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: prompt,
+                            guidance_scale: 7.5,
+                            num_inference_steps: 28,
+                            width: 1024,
+                            height: 1024
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setProgress(100);
+                        setTimeout(() => {
+                            setUploadedImage('data:image/png;base64,' + result.image);
+                            setIsProcessing(false);
+                            setProgress(0);
+                        }, 500);
+                    } else {
+                        setIsProcessing(false);
+                        setProgress(0);
+                        alert('Error: ' + (result.message || result.detail || 'Failed to generate image'));
+                    }
+                } catch (error) {
+                    setIsProcessing(false);
+                    setProgress(0);
+                    alert('Error generating image: ' + error.message);
+                }
+            };
+
+
+            const sampleImages = [
+                'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&h=150&fit=crop',
+                'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=150&h=150&fit=crop',
+                'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150&h=150&fit=crop',
+            ];
+
+            return (
+                <div className="flex h-full w-full bg-gray-900">
+                    {/* Left Column: Generation */}
+                    <div className="w-80 bg-gray-800 border-r border-gray-700 p-6 overflow-y-auto flex-shrink-0">
+                        <h2 className="text-xl font-bold text-white mb-6">Generation</h2>
+                        
+                        {/* AI Prompt */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-semibold text-gray-300 mb-3">AI Prompt</h3>
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Describe your product..."
+                                className="w-full h-24 px-3 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-primary focus:border-primary"
+                                rows={3}
+                            />
+                        </div>
+
+                        {/* Advanced Settings & Style Presets */}
+                        <div className="mb-6 space-y-3">
+                            <button
+                                onClick={() => setShowAdvanced(!showAdvanced)}
+                                className="flex items-center text-sm text-gray-400 hover:text-white"
+                            >
+                                Advanced Settings
+                                <Icons.ChevronDown 
+                                    style={{ 
+                                        width: '16px', 
+                                        height: '16px', 
+                                        marginLeft: '4px',
+                                        transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease'
+                                    }} 
+                                />
+                            </button>
+                            
+                            {showAdvanced && (
+                                <div className="space-y-3 pl-4 border-l-2 border-gray-600">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-300 mb-1">
+                                            Quality
+                                        </label>
+                                        <select className="w-full text-sm border border-gray-600 rounded-md bg-gray-700 text-white px-2 py-1">
+                                            <option>Standard</option>
+                                            <option>High</option>
+                                            <option>Ultra</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-300 mb-1">
+                                            Style Preset
+                                        </label>
+                                        <select className="w-full text-sm border border-gray-600 rounded-md bg-gray-700 text-white px-2 py-1">
+                                            <option>Photorealistic</option>
+                                            <option>Artistic</option>
+                                            <option>Minimalist</option>
+                                            <option>Vintage</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Generate Button */}
+                        <button
+                            onClick={handleGenerate}
+                            disabled={!prompt.trim() || isProcessing}
+                            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors mb-4"
+                        >
+                            {isProcessing ? 'Generating...' : 'Generate'}
+                        </button>
+
+                        {/* Enhance & Refine Buttons */}
+                        <div className="flex gap-2 mb-6">
+                            <button className="flex-1 bg-gray-600 hover:bg-gray-500 text-gray-200 font-medium py-2 px-3 rounded-md text-sm transition-colors">
+                                Enhance
+                            </button>
+                            <button className="flex-1 bg-gray-600 hover:bg-gray-500 text-gray-200 font-medium py-2 px-3 rounded-md text-sm transition-colors">
+                                Refine
+                            </button>
+                        </div>
+
+                        {/* Image Upload Section */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-300 mb-3">Image Upload</h3>
+                            <div
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                                    isDragOver 
+                                        ? 'border-primary bg-primary/5' 
+                                        : 'border-gray-600 hover:border-gray-500'
+                                }`}
+                            >
+                                <Icons.Upload className="mx-auto h-12 w-12 text-gray-500 mb-3" />
+                                <p className="text-sm text-gray-400 mb-1">
+                                    Click to upload or drag and drop
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    SVG, PNG, JPG or GIF (MAX. 800x400)
+                                </p>
+                            </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        handleFileUpload(e.target.files[0]);
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Column: Preview & Edit */}
+                    <div className="flex-1 bg-gray-900 flex flex-col min-w-0">
+                        <div className="p-6 border-b border-gray-700 w-full">
+                            <h2 className="text-xl font-bold text-white text-center">Preview & Edit</h2>
+                        </div>
+                        
+                        <div className="flex-1 w-full flex items-center justify-center p-6">
+                            {uploadedImage ? (
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    <img
+                                        src={uploadedImage}
+                                        alt="Generated or uploaded"
+                                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                                        style={{ maxHeight: 'calc(100vh - 200px)' }}
+                                    />
+                                    
+                                    {/* Processing Overlay */}
+                                    {isProcessing && (
+                                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center rounded-lg">
+                                            <div className="w-16 h-16 border-4 border-gray-400 border-t-primary rounded-full animate-spin mb-4"></div>
+                                            <p className="text-white font-semibold mb-2">{processingText}</p>
+                                            <div className="w-48 h-2 bg-gray-600 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-primary transition-all duration-300 ease-out"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className="text-white text-sm mt-2">{progress}%</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="w-full flex flex-col items-center justify-center text-center">
+                                    <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-gray-600">
+                                        <Icons.Upload className="h-8 w-8 text-gray-500" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-gray-400 mb-2">
+                                        No image loaded
+                                    </h3>
+                                    <p className="text-sm text-gray-500 max-w-md">
+                                        Upload an image or generate one with AI to get started
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Bottom Action Buttons */}
+                        {uploadedImage && (
+                            <div className="p-6 border-t border-gray-700 w-full flex gap-3 justify-center">
+                                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+                                    <Icons.Sliders style={{ width: '16px', height: '16px' }} />
+                                    Edit Image
+                                </button>
+                                <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+                                    <Icons.Download style={{ width: '16px', height: '16px' }} />
+                                    Save
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Upload Panel Component with proper structure
+        const UploadPanel = ({ uploadedImage, setUploadedImage }) => {
+            const fileInputRef = useRef(null);
+            const [isDragOver, setIsDragOver] = useState(false);
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                setIsDragOver(true);
+            };
+
+            const handleDragLeave = (e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileUpload(files[0]);
+                }
+            };
+
+            const handleFileUpload = (file) => {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        setUploadedImage(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const sampleImages = [
+                'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&h=150&fit=crop',
+                'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=150&h=150&fit=crop',
+                'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150&h=150&fit=crop',
+            ];
+
+            return !uploadedImage ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* AI Generation Promotion */}
+                    <div style={{
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        marginBottom: '24px'
+                    }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                        }}>
+                            <Icons.Wand2 style={{ width: '24px', height: '24px', color: '#8b5cf6' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                color: '#ffffff',
+                                margin: '0 0 4px 0'
+                            }}>Want to generate images with AI?</h3>
+                            <p style={{
+                                color: '#a3a3a3',
+                                fontSize: '14px',
+                                margin: '0 0 8px 0',
+                                lineHeight: '1.4'
+                            }}>Create stunning images from text descriptions using our AI tools.</p>
+                            <button
+                                onClick={() => {
+                                    const aiTool = document.querySelector('[data-tool="ai"]');
+                                    if (aiTool) aiTool.click();
+                                }}
+                                style={{
+                                    padding: '6px 12px',
+                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #14b8a6 100%)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: 'white',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    transition: 'opacity 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+                                onMouseLeave={(e) => e.target.style.opacity = '1'}
+                            >
+                                <Icons.Wand2 style={{ width: '12px', height: '12px' }} />
+                                Try AI Generation
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Enhanced Main Upload Section */}
+                    <div style={{ flex: 1, minHeight: '600px', padding: '32px' }}>
+                        <div 
+                            className={`upload-zone ${isDragOver ? 'dragover' : ''}`}
+                            style={{
+                                height: '100%',
+                                width: '100%',
+                                borderRadius: '24px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                backgroundColor: isDragOver 
+                                    ? 'rgba(20, 184, 166, 0.1)' 
+                                    : 'rgba(45, 45, 45, 0.3)',
+                                border: isDragOver 
+                                    ? '3px solid #14b8a6' 
+                                    : '3px dashed #404040',
+                                boxShadow: isDragOver 
+                                    ? '0 0 30px rgba(20, 184, 166, 0.3), inset 0 0 20px rgba(20, 184, 166, 0.05)' 
+                                    : 'inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                                transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
+                                backdropFilter: 'blur(10px)'
+                            }}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <div style={{ 
+                                textAlign: 'center', 
+                                position: 'relative',
+                                zIndex: 2,
+                                maxWidth: '600px'
+                            }}>
+                                {/* Animated Upload Icon */}
+                                <div style={{
+                                    width: '120px',
+                                    height: '120px',
+                                    margin: '0 auto 32px',
+                                    background: isDragOver 
+                                        ? 'linear-gradient(135deg, #14b8a6 0%, #059669 100%)'
+                                        : 'linear-gradient(135deg, rgba(20, 184, 166, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    transform: isDragOver ? 'scale(1.1) rotateZ(5deg)' : 'scale(1)',
+                                    boxShadow: isDragOver 
+                                        ? '0 20px 40px rgba(20, 184, 166, 0.4)' 
+                                        : '0 8px 24px rgba(0, 0, 0, 0.15)',
+                                    animation: isDragOver ? 'pulse 1s infinite' : 'float 6s ease-in-out infinite'
+                                }}>
+                                    <Icons.Upload style={{ 
+                                        width: '48px', 
+                                        height: '48px', 
+                                        color: isDragOver ? '#ffffff' : '#14b8a6',
+                                        transition: 'color 0.3s ease'
+                                    }} />
+                                </div>
+
+                                {/* Main Heading */}
+                                <h1 style={{ 
+                                    fontSize: '32px', 
+                                    fontWeight: '800', 
+                                    marginBottom: '16px',
+                                    color: '#ffffff',
+                                    lineHeight: '1.2',
+                                    transition: 'color 0.3s ease'
+                                }}>
+                                    {isDragOver ? 'Drop your image here!' : 'Start creating amazing edits'}
+                                </h1>
+
+                                {/* Subtitle */}
+                                <p style={{ 
+                                    color: isDragOver ? '#14b8a6' : '#a3a3a3',
+                                    marginBottom: '40px',
+                                    fontSize: '18px',
+                                    lineHeight: '1.5',
+                                    transition: 'color 0.3s ease',
+                                    fontWeight: '500'
+                                }}>
+                                    {isDragOver 
+                                        ? 'Release to upload your image' 
+                                        : 'Drag & drop your image or browse from your device'
+                                    }
+                                </p>
+
+                                {/* Upload Button */}
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        fileInputRef.current?.click();
+                                    }}
+                                    style={{
+                                        padding: '16px 40px',
+                                        background: 'linear-gradient(135deg, #14b8a6 0%, #8b5cf6 100%)',
+                                        border: 'none',
+                                        borderRadius: '16px',
+                                        color: 'white',
+                                        fontSize: '18px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        marginBottom: '40px',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: '0 8px 25px rgba(20, 184, 166, 0.3)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        margin: '0 auto 40px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.transform = 'translateY(-2px)';
+                                        e.target.style.boxShadow = '0 12px 30px rgba(20, 184, 166, 0.4)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 8px 25px rgba(20, 184, 166, 0.3)';
+                                    }}
+                                >
+                                    <Icons.Upload style={{ width: '20px', height: '20px' }} />
+                                    Choose Image
+                                </button>
+
+                                {/* Sample Images */}
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '20px', 
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    {sampleImages.map((src, index) => (
+                                        <img 
+                                            key={index}
+                                            src={src} 
+                                            alt={'Sample ' + (index + 1)}
+                                            style={{ 
+                                                width: '80px', 
+                                                height: '80px', 
+                                                borderRadius: '12px', 
+                                                objectFit: 'cover', 
+                                                cursor: 'pointer',
+                                                border: '3px solid transparent',
+                                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                                            }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setUploadedImage(src);
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.target.style.borderColor = '#14b8a6';
+                                                e.target.style.transform = 'translateY(-4px) scale(1.05)';
+                                                e.target.style.boxShadow = '0 12px 24px rgba(20, 184, 166, 0.4)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.target.style.borderColor = 'transparent';
+                                                e.target.style.transform = 'translateY(0) scale(1)';
+                                                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Hidden File Input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        handleFileUpload(e.target.files[0]);
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#2d2d2d',
+                    borderRadius: '16px',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    <img 
+                        src={uploadedImage} 
+                        alt="Uploaded" 
+                        style={{ 
+                            maxHeight: '100%', 
+                            maxWidth: '100%', 
+                            objectFit: 'contain',
+                            borderRadius: '8px'
+                        }}
+                    />
+                </div>
+            );
+        };
+
+        // Tool Panel Component - Smooth Slide Animation
+        const ToolPanel = ({ toolId, onClose, uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress, isClosing }) => {
+            const panels = {
+                upload: <UploadPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} />,
+                basic: <BasicEditsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} />,
+                ai: <AIEditsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} />,
+                shots: <GenerateShotsPanel />,
+                lifestyle: <LifestyleMockupsPanel />,
+                animation: <AnimationPanel />,
+                '3d': <ThreeDMockupsPanel />,
+            };
+
+            const titles = {
+                upload: 'Upload & Import',
+                basic: 'Basic Edits',
+                ai: 'AI Edits',
+                shots: 'Generate Shots',
+                lifestyle: 'Lifestyle Mockups',
+                animation: 'Animation',
+                '3d': '3D Mockups'
+            };
+
+            return (
+                <div 
+                    className={`tool-panel ${isClosing ? 'closing' : ''}`}
+                    style={{
+                        width: '360px',
+                        backgroundColor: '#2d2d2d',
+                        borderLeft: '1px solid #404040',
+                        padding: '24px',
+                        overflowY: 'auto',
+                        height: '100vh'
+                    }}
+                >
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        marginBottom: '24px' 
+                    }}>
+                        <h3 style={{ 
+                            fontSize: '18px', 
+                            fontWeight: '600',
+                            color: '#ffffff',
+                            margin: 0
+                        }}>
+                            {titles[toolId]}
+                        </h3>
+                        <button 
+                            onClick={onClose}
+                            style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                backgroundColor: '#1a1a1a',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                color: '#a3a3a3'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = '#374151';
+                                e.target.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = '#1a1a1a';
+                                e.target.style.color = '#a3a3a3';
+                            }}
+                        >
+                            <Icons.X style={{ width: '16px', height: '16px' }} />
+                        </button>
+                    </div>
+                    {panels[toolId]}
+                </div>
+            );
+        };
+
+
+        // Basic Edits Panel (placeholder)
+        const BasicEditsPanel = () => (
+            <div style={{ color: '#e5e5e5' }}>
+                <p>Basic editing tools will be implemented here.</p>
+            </div>
+        );
+
+        // AI Edits Panel - Comprehensive AI tools
+        const AIEditsPanel = ({ uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress }) => {
+            const handleAIGeneration = async () => {
+                const prompt = document.getElementById('ai-prompt').value.trim();
+                if (!prompt) {
+                    alert('Please enter a description for your image');
+                    return;
+                }
+
+                setIsProcessing(true);
+                setProcessingText('AI is generating your image...');
+                setProgress(0);
+
+                // Simulate AI generation progress
+                const interval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev >= 90) {
+                            clearInterval(interval);
+                            return 90;
+                        }
+                        return prev + 5;
+                    });
+                }, 300);
+
+                try {
+                    const response = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            prompt: prompt,
+                            guidance_scale: 7.5,
+                            num_inference_steps: 28,
+                            width: 1024,
+                            height: 1024
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setProgress(100);
+                        setTimeout(() => {
+                            setUploadedImage('data:image/png;base64,' + result.image);
+                            setIsProcessing(false);
+                            setProgress(0);
+                            document.getElementById('ai-prompt').value = '';
+                        }, 500);
+                    } else {
+                        setIsProcessing(false);
+                        setProgress(0);
+                        alert('Error: ' + (result.message || result.detail || 'Failed to generate image'));
+                    }
+                } catch (error) {
+                    setIsProcessing(false);
+                    setProgress(0);
+                    alert('Error generating image: ' + error.message);
+                }
+            };
+
+            const handleAIEdit = async () => {
+                if (!uploadedImage) {
+                    alert('Please upload an image first');
+                    return;
+                }
+
+                const prompt = document.getElementById('ai-edit-prompt').value.trim();
+                if (!prompt) {
+                    alert('Please enter editing instructions');
+                    return;
+                }
+
+                setIsProcessing(true);
+                setProcessingText('AI is editing your image...');
+                setProgress(0);
+
+                const interval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev >= 90) {
+                            clearInterval(interval);
+                            return 90;
+                        }
+                        return prev + 5;
+                    });
+                }, 300);
+
+                try {
+                    const imageBase64 = uploadedImage.split(',')[1];
+                    const response = await fetch('/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image_base64: imageBase64,
+                            prompt: prompt,
+                            guidance_scale: 7.5,
+                            num_inference_steps: 28
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setProgress(100);
+                        setTimeout(() => {
+                            setUploadedImage('data:image/png;base64,' + result.image);
+                            setIsProcessing(false);
+                            setProgress(0);
+                            document.getElementById('ai-edit-prompt').value = '';
+                        }, 500);
+                    } else {
+                        setIsProcessing(false);
+                        setProgress(0);
+                        alert('Error: ' + (result.message || result.detail || 'Failed to edit image'));
+                    }
+                } catch (error) {
+                    setIsProcessing(false);
+                    setProgress(0);
+                    alert('Error editing image: ' + error.message);
+                }
+            };
+
+            return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Generate New Image Section */}
+                    <div style={{
+                        backgroundColor: '#1a1a1a',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        border: '1px solid #404040'
+                    }}>
+                        <div style={{ marginBottom: '16px' }}>
+                            <h4 style={{
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                color: '#ffffff',
+                                margin: '0 0 8px 0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <Icons.Wand2 style={{ width: '18px', height: '18px', color: '#8b5cf6' }} />
+                                Generate with AI
+                            </h4>
+                            <p style={{
+                                color: '#a3a3a3',
+                                fontSize: '14px',
+                                margin: 0
+                            }}>Create new images from text descriptions</p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <textarea
+                                id="ai-prompt"
+                                placeholder="A modern wireless headphone in black, studio lighting, white background..."
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    backgroundColor: '#2d2d2d',
+                                    border: '1px solid #404040',
+                                    borderRadius: '8px',
+                                    color: '#e5e5e5',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    resize: 'none',
+                                    height: '80px',
+                                    fontFamily: 'inherit'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#8b5cf6'}
+                                onBlur={(e) => e.target.style.borderColor = '#404040'}
+                            />
+
+                            <button
+                                onClick={handleAIGeneration}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #14b8a6 100%)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    transition: 'opacity 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+                                onMouseLeave={(e) => e.target.style.opacity = '1'}
+                            >
+                                <Icons.Wand2 style={{ width: '16px', height: '16px' }} />
+                                Generate Image
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div style={{
+                        height: '1px',
+                        backgroundColor: '#404040',
+                        position: 'relative'
+                    }}>
+                        <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            backgroundColor: '#2d2d2d',
+                            color: '#6b7280',
+                            padding: '0 12px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                        }}>
+                            OR
+                        </div>
+                    </div>
+
+                    {/* Edit Existing Image Section */}
+                    <div style={{
+                        backgroundColor: '#1a1a1a',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        border: '1px solid #404040',
+                        opacity: uploadedImage ? 1 : 0.6
+                    }}>
+                        <div style={{ marginBottom: '16px' }}>
+                            <h4 style={{
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                color: '#ffffff',
+                                margin: '0 0 8px 0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <Icons.Sliders style={{ width: '18px', height: '18px', color: '#14b8a6' }} />
+                                Edit with AI
+                            </h4>
+                            <p style={{
+                                color: '#a3a3a3',
+                                fontSize: '14px',
+                                margin: 0
+                            }}>Modify your uploaded image with AI{!uploadedImage && ' (upload an image first)'}</p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <textarea
+                                id="ai-edit-prompt"
+                                placeholder="Remove background, change color to blue, add studio lighting..."
+                                disabled={!uploadedImage}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    backgroundColor: uploadedImage ? '#2d2d2d' : '#1a1a1a',
+                                    border: '1px solid #404040',
+                                    borderRadius: '8px',
+                                    color: uploadedImage ? '#e5e5e5' : '#6b7280',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    resize: 'none',
+                                    height: '60px',
+                                    fontFamily: 'inherit',
+                                    cursor: uploadedImage ? 'text' : 'not-allowed'
+                                }}
+                                onFocus={(e) => uploadedImage && (e.target.style.borderColor = '#14b8a6')}
+                                onBlur={(e) => e.target.style.borderColor = '#404040'}
+                            />
+
+                            <button
+                                onClick={handleAIEdit}
+                                disabled={!uploadedImage}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px 16px',
+                                    background: uploadedImage
+                                        ? 'linear-gradient(135deg, #14b8a6 0%, #8b5cf6 100%)'
+                                        : '#1a1a1a',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: uploadedImage ? 'white' : '#6b7280',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: uploadedImage ? 'pointer' : 'not-allowed',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    transition: 'opacity 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => uploadedImage && (e.target.style.opacity = '0.9')}
+                                onMouseLeave={(e) => e.target.style.opacity = '1'}
+                            >
+                                <Icons.Sliders style={{ width: '16px', height: '16px' }} />
+                                Edit Image
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* AI Options */}
+                    <div style={{
+                        backgroundColor: '#1a1a1a',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        border: '1px solid #404040'
+                    }}>
+                        <h4 style={{
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#ffffff',
+                            margin: '0 0 16px 0'
+                        }}>AI Settings</h4>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    color: '#a3a3a3',
+                                    marginBottom: '8px'
+                                }}>Quality</label>
+                                <select style={{
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    backgroundColor: '#2d2d2d',
+                                    border: '1px solid #404040',
+                                    borderRadius: '6px',
+                                    color: '#e5e5e5',
+                                    fontSize: '14px',
+                                    outline: 'none'
+                                }}>
+                                    <option>Standard (Fast)</option>
+                                    <option>High (Slower)</option>
+                                    <option>Ultra (Slowest)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    color: '#a3a3a3',
+                                    marginBottom: '8px'
+                                }}>Style</label>
+                                <select style={{
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    backgroundColor: '#2d2d2d',
+                                    border: '1px solid #404040',
+                                    borderRadius: '6px',
+                                    color: '#e5e5e5',
+                                    fontSize: '14px',
+                                    outline: 'none'
+                                }}>
+                                    <option>Photorealistic</option>
+                                    <option>Artistic</option>
+                                    <option>Minimalist</option>
+                                    <option>Vintage</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Other panels (placeholders)
+        const GenerateShotsPanel = () => <div style={{ color: '#e5e5e5' }}><p>Generate shots tools.</p></div>;
+        const LifestyleMockupsPanel = () => <div style={{ color: '#e5e5e5' }}><p>Lifestyle mockups tools.</p></div>;
+        const AnimationPanel = () => <div style={{ color: '#e5e5e5' }}><p>Animation tools.</p></div>;
+        const ThreeDMockupsPanel = () => <div style={{ color: '#e5e5e5' }}><p>3D mockups tools.</p></div>;
+
+        // Render the app using React 18 createRoot
+        const { createRoot } = ReactDOM;
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

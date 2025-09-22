@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Make3D Studio - Integrated Editor</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1f71d6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"],
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        };
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+        .phase-tab {
+            transition: all 0.3s ease;
+        }
+        .phase-tab.active {
+            background: #1f71d6;
+            color: white;
+        }
+        .upload-area {
+            border: 2px dashed #1f71d6;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #1557b0;
+            background: rgba(31, 113, 214, 0.05);
+        }
+        .upload-area.dragover {
+            border-color: #1557b0;
+            background: rgba(31, 113, 214, 0.1);
+        }
+        .image-container {
+            position: relative;
+            max-height: 500px;
+            overflow: hidden;
+            border-radius: 0.75rem;
+        }
+        .image-display {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200">
+    <!-- Header -->
+    <header class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200/10 dark:border-gray-700/50 px-6">
+        <div class="flex items-center gap-4">
+            <button onclick="newProject()" class="flex items-center gap-2 text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-primary">
+                <span class="material-symbols-outlined">refresh</span>
+                New Project
+            </button>
+            <div class="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+            <div class="flex items-center gap-4">
+                <div class="text-primary size-7">
+                    <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <g clip-path="url(#clip0_6_535)">
+                            <path clip-rule="evenodd" d="M47.2426 24L24 47.2426L0.757355 24L24 0.757355L47.2426 24ZM12.2426 21H35.7574L24 9.24264L12.2426 21Z" fill="currentColor" fill-rule="evenodd"></path>
+                        </g>
+                        <defs>
+                            <clipPath id="clip0_6_535">
+                                <rect fill="white" height="48" width="48"></rect>
+                            </clipPath>
+                        </defs>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Make3D Studio</h2>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="saveProject()" class="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-green-600 px-4 text-sm font-semibold text-white transition-all hover:bg-green-700">
+                <span class="material-symbols-outlined text-base">save</span>
+                <span>Save Project</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex h-[calc(100vh-4rem)]">
+        <!-- Left Panel - Controls -->
+        <div class="w-96 border-r border-gray-200/10 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50 p-6 overflow-y-auto">
+            <!-- Phase Tabs -->
+            <div class="mb-6">
+                <div class="flex rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                    <button onclick="switchPhase('create')" class="phase-tab flex-1 rounded-md px-3 py-2 text-sm font-medium" id="create-tab">
+                        1. Create
+                    </button>
+                    <button onclick="switchPhase('edit')" class="phase-tab flex-1 rounded-md px-3 py-2 text-sm font-medium" id="edit-tab">
+                        2. Edit
+                    </button>
+                    <button onclick="switchPhase('generate3d')" class="phase-tab flex-1 rounded-md px-3 py-2 text-sm font-medium" id="generate3d-tab">
+                        3. 3D
+                    </button>
+                </div>
+            </div>
+
+            <!-- Phase 1: Create -->
+            <div id="create-phase" class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Create Your Image</h3>
+                    
+                    <!-- Upload Option -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Upload Existing Image</h4>
+                        <div class="upload-area rounded-lg p-6 text-center cursor-pointer" onclick="document.getElementById('imageInput').click()">
+                            <span class="material-symbols-outlined text-3xl text-primary mb-2 block">cloud_upload</span>
+                            <p class="font-semibold text-gray-900 dark:text-white">Drop image here or click to browse</p>
+                            <small class="text-gray-500 dark:text-gray-400">Supports JPG, PNG, WEBP</small>
+                        </div>
+                        <input type="file" id="imageInput" style="display: none;" accept="image/*">
+                    </div>
+
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">OR</span>
+                        <div class="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                    </div>
+
+                    <!-- AI Generation Option -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Generate with AI</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Describe your product</label>
+                                <textarea id="aiPrompt" class="w-full rounded-lg border border-gray-300 p-3 text-sm dark:border-gray-600 dark:bg-gray-700" 
+                                          placeholder="e.g., red ergonomic chair with steel legs, modern design..." rows="3"></textarea>
+                            </div>
+                            <button onclick="generateAIImage()" id="generateBtn" class="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-white transition-all hover:bg-primary/90">
+                                Generate with Flux Kontext
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Edit -->
+            <div id="edit-phase" class="space-y-6" style="display: none;">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Edit Your Image</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Editing Prompt</label>
+                            <textarea id="editPrompt" class="w-full rounded-lg border border-gray-300 p-3 text-sm dark:border-gray-600 dark:bg-gray-700" 
+                                      placeholder="Describe the changes you want to make..." rows="3"></textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Guidance Scale</label>
+                                <input type="range" id="guidanceScale" min="1" max="10" value="3.5" step="0.5" class="w-full">
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <span>1</span>
+                                    <span class="float-right">10</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Steps</label>
+                                <input type="range" id="inferenceSteps" min="10" max="50" value="28" class="w-full">
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <span>10</span>
+                                    <span class="float-right">50</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="editImage()" id="editBtn" class="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-white transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Edit with Flux Kontext
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3: Generate 3D -->
+            <div id="generate3d-phase" class="space-y-6" style="display: none;">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Generate 3D Model</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 mt-0.5">info</span>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Ready for 3D Conversion</p>
+                                    <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">Your edited image will be converted to a high-quality 3D model using Hunyuan 3D 2.0</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Output Format</label>
+                            <select id="outputFormat" class="w-full rounded-lg border border-gray-300 p-3 text-sm dark:border-gray-600 dark:bg-gray-700">
+                                <option value="gltf">GLTF (.gltf) - Web/AR</option>
+                                <option value="usdz">USDZ (.usdz) - iOS AR</option>
+                                <option value="fbx">FBX (.fbx) - Professional</option>
+                                <option value="obj">OBJ (.obj) - Universal</option>
+                            </select>
+                        </div>
+
+                        <button onclick="generate3D()" id="generate3dBtn" class="w-full rounded-lg bg-purple-600 px-4 py-3 font-semibold text-white transition-all hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <span class="material-symbols-outlined text-base mr-2">view_in_ar</span>
+                            Generate 3D Model
+                        </button>
+
+                        <div id="3d-preview" style="display: none;" class="border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">3D preview will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Image Display -->
+        <div class="flex-1 flex flex-col">
+            <div class="flex-1 p-6 flex items-center justify-center">
+                <div id="image-workspace" class="w-full h-full flex items-center justify-center">
+                    <div id="empty-state" class="text-center">
+                        <div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                            <span class="material-symbols-outlined text-4xl text-gray-400">image</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Start Creating</h3>
+                        <p class="text-gray-600 dark:text-gray-300">Upload an image or generate one with AI to begin</p>
+                    </div>
+                    
+                    <div id="image-display" style="display: none;" class="image-container border border-gray-300 dark:border-gray-600">
+                        <img id="main-image" class="image-display" alt="Working image">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div id="progress-container" style="display: none;" class="border-t border-gray-200/10 dark:border-gray-700/50 p-4">
+                <div class="flex items-center gap-4">
+                    <div class="flex-1">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span id="progress-text">Processing...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div id="progress-bar" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <button onclick="cancelOperation()" class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400">
+                        <span class="material-symbols-outlined">cancel</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Image Actions -->
+            <div id="image-actions" style="display: none;" class="border-t border-gray-200/10 dark:border-gray-700/50 p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button onclick="downloadImage()" class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700">
+                            <span class="material-symbols-outlined text-base">download</span>
+                            Download
+                        </button>
+                        <button onclick="resetImage()" class="flex items-center gap-2 rounded-lg bg-gray-500 px-4 py-2 text-white hover:bg-gray-600">
+                            <span class="material-symbols-outlined text-base">refresh</span>
+                            Reset
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button onclick="previousPhase()" id="prev-btn" class="flex items-center gap-1 rounded-lg bg-gray-200 px-3 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="material-symbols-outlined text-base">chevron_left</span>
+                            Previous
+                        </button>
+                        <button onclick="nextPhase()" id="next-btn" class="flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next
+                            <span class="material-symbols-outlined text-base">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentPhase = 'create';
+        let currentImage = null;
+        let currentImageData = null;
+        let isProcessing = false;
+
+        // Phase management
+        function switchPhase(phase) {
+            currentPhase = phase;
+            
+            // Update tabs
+            document.querySelectorAll('.phase-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(phase + '-tab').classList.add('active');
+            
+            // Show/hide phase content
+            document.getElementById('create-phase').style.display = phase === 'create' ? 'block' : 'none';
+            document.getElementById('edit-phase').style.display = phase === 'edit' ? 'block' : 'none';
+            document.getElementById('generate3d-phase').style.display = phase === 'generate3d' ? 'block' : 'none';
+            
+            updatePhaseButtons();
+        }
+
+        function updatePhaseButtons() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            prevBtn.disabled = currentPhase === 'create';
+            
+            if (currentPhase === 'create') {
+                nextBtn.disabled = !currentImage;
+            } else if (currentPhase === 'edit') {
+                nextBtn.disabled = !currentImage;
+            } else {
+                nextBtn.disabled = true;
+            }
+        }
+
+        function nextPhase() {
+            if (currentPhase === 'create' && currentImage) {
+                switchPhase('edit');
+            } else if (currentPhase === 'edit' && currentImage) {
+                switchPhase('generate3d');
+            }
+        }
+
+        function previousPhase() {
+            if (currentPhase === 'edit') {
+                switchPhase('create');
+            } else if (currentPhase === 'generate3d') {
+                switchPhase('edit');
+            }
+        }
+
+        // Image handling
+        function displayImage(imageData) {
+            currentImage = imageData;
+            currentImageData = imageData;
+            
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('image-display').style.display = 'block';
+            document.getElementById('image-actions').style.display = 'block';
+            document.getElementById('main-image').src = 'data:image/png;base64,' + imageData;
+            
+            // Enable edit phase
+            document.getElementById('editBtn').disabled = false;
+            document.getElementById('generate3dBtn').disabled = false;
+            
+            updatePhaseButtons();
+        }
+
+        // File upload
+        const imageInput = document.getElementById('imageInput');
+        const uploadArea = document.querySelector('.upload-area');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleImageUpload(files[0]);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+
+        function handleImageUpload(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                displayImage(base64Data);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // AI Image Generation
+        async function generateAIImage() {
+            const prompt = document.getElementById('aiPrompt').value.trim();
+            if (!prompt) {
+                alert('Please enter a description for your product');
+                return;
+            }
+
+            showProgress('Generating image with Flux Kontext...', 0);
+            
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        guidance_scale: 7.5,
+                        num_inference_steps: 28,
+                        width: 1024,
+                        height: 1024
+                        // No image_base64 = text-to-image generation
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayImage(result.image);
+                    hideProgress();
+                } else {
+                    hideProgress();
+                    console.error('Generation failed:', result);
+                    alert('Error: ' + (result.message || result.detail || 'Failed to generate image'));
+                }
+                
+            } catch (error) {
+                hideProgress();
+                console.error('Network error:', error);
+                if (error.response) {
+                    error.response.text().then(text => {
+                        console.error('Error response:', text);
+                        alert('Server error: ' + text);
+                    });
+                } else {
+                    alert('Error generating image: ' + error.message);
+                }
+            }
+        }
+
+        // Image Editing
+        async function editImage() {
+            const prompt = document.getElementById('editPrompt').value.trim();
+            if (!prompt) {
+                alert('Please describe the changes you want to make');
+                return;
+            }
+
+            if (!currentImage) {
+                alert('Please upload or generate an image first');
+                return;
+            }
+
+            showProgress('Editing image with Flux Kontext...', 0);
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        image_base64: currentImage,
+                        guidance_scale: parseFloat(document.getElementById('guidanceScale').value),
+                        num_inference_steps: parseInt(document.getElementById('inferenceSteps').value),
+                        width: 1024,
+                        height: 1024
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayImage(result.image);
+                    hideProgress();
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } catch (error) {
+                hideProgress();
+                alert('Error editing image: ' + error.message);
+            }
+        }
+
+        // 3D Generation
+        async function generate3D() {
+            if (!currentImage) {
+                alert('Please create and edit an image first');
+                return;
+            }
+
+            const format = document.getElementById('outputFormat').value;
+            showProgress('Converting to 3D model...', 0);
+
+            try {
+                // Simulate 3D conversion progress
+                for (let i = 0; i <= 100; i += 5) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    updateProgress(i);
+                    if (i === 30) updateProgressText('Analyzing image depth...');
+                    if (i === 60) updateProgressText('Generating 3D mesh...');
+                    if (i === 90) updateProgressText('Finalizing model...');
+                }
+
+                hideProgress();
+                
+                // Show 3D preview placeholder
+                document.getElementById('3d-preview').style.display = 'block';
+                document.getElementById('3d-preview').innerHTML = `
+                    <div class="text-center">
+                        <span class="material-symbols-outlined text-4xl text-green-600 mb-2 block">check_circle</span>
+                        <p class="font-semibold text-green-600">3D Model Generated Successfully!</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Format: ${format.toUpperCase()}</p>
+                        <button onclick="download3D()" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-white hover:bg-purple-700">
+                            <span class="material-symbols-outlined text-base">download</span>
+                            Download 3D Model
+                        </button>
+                    </div>
+                `;
+                
+            } catch (error) {
+                hideProgress();
+                alert('Error generating 3D model: ' + error.message);
+            }
+        }
+
+        // Progress management
+        function showProgress(text, percent) {
+            isProcessing = true;
+            document.getElementById('progress-container').style.display = 'block';
+            updateProgressText(text);
+            updateProgress(percent);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-percent').textContent = Math.round(percent) + '%';
+        }
+
+        function updateProgressText(text) {
+            document.getElementById('progress-text').textContent = text;
+        }
+
+        function hideProgress() {
+            isProcessing = false;
+            document.getElementById('progress-container').style.display = 'none';
+        }
+
+        function cancelOperation() {
+            if (isProcessing) {
+                hideProgress();
+                // TODO: Implement actual cancellation
+            }
+        }
+
+        // Utility functions
+        function downloadImage() {
+            if (currentImage) {
+                const link = document.createElement('a');
+                link.download = 'make3d-image.png';
+                link.href = 'data:image/png;base64,' + currentImage;
+                link.click();
+            }
+        }
+
+        function download3D() {
+            // TODO: Implement 3D model download
+            alert('3D model download will be implemented');
+        }
+
+        function resetImage() {
+            if (confirm('Are you sure you want to reset the image?')) {
+                currentImage = null;
+                currentImageData = null;
+                document.getElementById('empty-state').style.display = 'block';
+                document.getElementById('image-display').style.display = 'none';
+                document.getElementById('image-actions').style.display = 'none';
+                document.getElementById('3d-preview').style.display = 'none';
+                document.getElementById('editBtn').disabled = true;
+                document.getElementById('generate3dBtn').disabled = true;
+                updatePhaseButtons();
+                switchPhase('create');
+            }
+        }
+
+        function saveProject() {
+            // TODO: Implement project saving
+            alert('Project saving will be implemented');
+        }
+
+        function newProject() {
+            if (confirm('Are you sure you want to start a new project? Unsaved changes will be lost.')) {
+                window.location.reload();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            switchPhase('create');
+            
+            // Update slider values in real-time
+            document.getElementById('guidanceScale').addEventListener('input', function(e) {
+                // Could add real-time preview here
+            });
+            
+            document.getElementById('inferenceSteps').addEventListener('input', function(e) {
+                // Could add real-time preview here
+            });
+        });
+    </script>
+</body>
+</html>

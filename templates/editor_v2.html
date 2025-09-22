@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Make3D Studio</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1f71d6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"],
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        };
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+        .sidebar-section {
+            border-bottom: 1px solid rgba(55, 65, 81, 0.3);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .sidebar-section:last-child {
+            border-bottom: none;
+        }
+        .sidebar {
+            transition: width 0.3s ease, transform 0.3s ease;
+        }
+        .sidebar.collapsed {
+            width: 0;
+            transform: translateX(-100%);
+        }
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            z-index: 100;
+            transform: translateY(-50%);
+            transition: left 0.3s ease;
+        }
+        .sidebar-toggle.collapsed {
+            left: 10px;
+        }
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(17, 24, 33, 0.95);
+            border-radius: 0.5rem;
+            backdrop-filter: blur(10px);
+        }
+        .basic-edit-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(55, 65, 81, 0.5);
+            background: rgba(31, 41, 55, 0.8);
+            color: rgb(209, 213, 219);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .basic-edit-btn:hover {
+            background: rgba(31, 113, 214, 0.2);
+            border-color: #1f71d6;
+            color: #1f71d6;
+        }
+        .tool-button {
+            transition: all 0.2s ease;
+        }
+        .tool-button:hover {
+            background-color: rgba(31, 113, 214, 0.1);
+            color: #1f71d6;
+        }
+        .tool-button.active {
+            background-color: rgba(31, 113, 214, 0.2);
+            color: #1f71d6;
+        }
+        .upload-area {
+            border: 2px dashed #374151;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #1f71d6;
+            background-color: rgba(31, 113, 214, 0.05);
+        }
+        .upload-area.dragover {
+            border-color: #1f71d6;
+            background-color: rgba(31, 113, 214, 0.1);
+        }
+        .range-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(55, 65, 81, 0.8);
+            outline: none;
+            cursor: pointer;
+        }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1f71d6;
+            cursor: pointer;
+        }
+        .range-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1f71d6;
+            cursor: pointer;
+            border: none;
+        }
+        .filter-preview {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .filter-preview:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="font-display bg-background-dark text-gray-200">
+    <div class="flex h-screen w-full flex-col">
+        <!-- Header -->
+        <header class="flex h-16 shrink-0 items-center justify-between border-b border-gray-700/50 px-6">
+            <div class="flex items-center gap-4">
+                <div class="text-primary size-7">
+                    <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <g clip-path="url(#clip0_6_535)">
+                            <path clip-rule="evenodd" d="M47.2426 24L24 47.2426L0.757355 24L24 0.757355L47.2426 24ZM12.2426 21H35.7574L24 9.24264L12.2426 21Z" fill="currentColor" fill-rule="evenodd"></path>
+                        </g>
+                        <defs>
+                            <clipPath id="clip0_6_535">
+                                <rect fill="white" height="48" width="48"></rect>
+                            </clipPath>
+                        </defs>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-white">Make3D Studio</h2>
+            </div>
+            <nav class="hidden items-center gap-6 text-sm font-medium lg:flex">
+                <a class="text-gray-300 hover:text-primary transition-colors" href="#">Dashboard</a>
+                <a class="text-gray-300 hover:text-primary transition-colors" href="#">Projects</a>
+                <a class="text-gray-300 hover:text-primary transition-colors" href="#">Templates</a>
+                <a class="text-gray-300 hover:text-primary transition-colors" href="#">Learn</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <button onclick="newProject()" class="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-all hover:bg-primary/90">
+                    <span class="material-symbols-outlined text-base">add</span>
+                    <span>New Project</span>
+                </button>
+                <div class="size-9 rounded-full bg-gradient-to-br from-primary to-purple-600"></div>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Toggle Button -->
+            <button id="sidebar-toggle" class="sidebar-toggle flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-primary transition-all border border-gray-600" onclick="toggleSidebar()">
+                <span id="sidebar-toggle-icon" class="material-symbols-outlined text-lg">menu_open</span>
+            </button>
+
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar flex w-96 flex-col border-r border-gray-700/50 p-4 bg-background-dark overflow-hidden">
+                <!-- Content Creation Section -->
+                <div class="sidebar-section">
+                    <div class="px-2">
+                        <h3 class="text-lg font-bold text-white">Content Creation</h3>
+                        <p class="text-sm text-gray-400">Upload or generate an image to start</p>
+                    </div>
+                    <div class="mt-6 flex flex-col gap-4">
+                        <div class="upload-area rounded-lg p-6 text-center cursor-pointer" onclick="document.getElementById('file-input').click()">
+                            <span class="material-symbols-outlined text-2xl text-gray-400 mb-2 block">upload_file</span>
+                            <span class="text-sm font-semibold text-gray-300">Upload Image</span>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <h4 class="px-2 text-base font-semibold text-white mb-3">Generate with AI</h4>
+                        <div class="flex flex-col gap-4 p-2">
+                            <textarea id="ai-prompt" class="w-full resize-none rounded-lg border border-gray-600 bg-gray-800/50 p-3 text-sm text-white placeholder:text-gray-400 focus:border-primary focus:ring-primary focus:outline-none" placeholder="A futuristic sports car, studio lighting..." rows="3"></textarea>
+                            <button onclick="generateWithAI()" class="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-all hover:bg-primary/90">
+                                <span class="material-symbols-outlined text-lg">auto_awesome</span>
+                                <span>Generate</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Editing Tools Section -->
+                <div class="flex-1 space-y-4 overflow-y-auto">
+                    <h4 class="px-2 text-base font-semibold text-white">Image Editing Tools</h4>
+                    
+                    <!-- Transform Tools -->
+                    <div class="space-y-1 p-2">
+                        <button onclick="toggleSection('transform')" class="tool-button flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300">
+                            <span class="material-symbols-outlined text-xl">crop_rotate</span>
+                            <span>Transform</span>
+                        </button>
+                        <div id="transform-section" class="space-y-3 pl-8 pt-2" style="display: none;">
+                            <div class="flex items-center justify-between text-sm">
+                                <label class="text-gray-400">Crop</label>
+                                <div class="flex gap-1">
+                                    <button onclick="quickEdit('crop image to square aspect ratio')" class="flex size-7 items-center justify-center rounded-md hover:bg-gray-700/50 text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-lg">crop_free</span>
+                                    </button>
+                                    <button onclick="quickEdit('crop image to 16:9 aspect ratio')" class="flex size-7 items-center justify-center rounded-md hover:bg-gray-700/50 text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-lg">crop_16_9</span>
+                                    </button>
+                                    <button onclick="quickEdit('crop image to portrait orientation')" class="flex size-7 items-center justify-center rounded-md hover:bg-gray-700/50 text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-lg">crop_portrait</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <label class="text-gray-400">Rotate</label>
+                                <div class="flex gap-1">
+                                    <button onclick="quickEdit('rotate image 90 degrees left')" class="flex size-7 items-center justify-center rounded-md hover:bg-gray-700/50 text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-lg">rotate_left</span>
+                                    </button>
+                                    <button onclick="quickEdit('rotate image 90 degrees right')" class="flex size-7 items-center justify-center rounded-md hover:bg-gray-700/50 text-gray-400 hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-lg">rotate_right</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Adjustments -->
+                    <div class="space-y-1 p-2">
+                        <button onclick="toggleSection('adjustments')" class="tool-button active flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium">
+                            <span class="material-symbols-outlined text-xl">tune</span>
+                            <span>Adjustments</span>
+                        </button>
+                        <div id="adjustments-section" class="space-y-4 pl-8 pt-4">
+                            <div class="space-y-2">
+                                <label class="text-sm text-gray-400">Brightness</label>
+                                <input id="brightness-slider" class="range-slider w-full" type="range" min="-100" max="100" value="0" onchange="applyAdjustment()"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm text-gray-400">Contrast</label>
+                                <input id="contrast-slider" class="range-slider w-full" type="range" min="-100" max="100" value="0" onchange="applyAdjustment()"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm text-gray-400">Saturation</label>
+                                <input id="saturation-slider" class="range-slider w-full" type="range" min="-100" max="100" value="0" onchange="applyAdjustment()"/>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm text-gray-400">Hue</label>
+                                <input id="hue-slider" class="range-slider w-full" type="range" min="-100" max="100" value="0" onchange="applyAdjustment()"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="space-y-1 p-2">
+                        <button onclick="toggleSection('filters')" class="tool-button flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300">
+                            <span class="material-symbols-outlined text-xl">filter_vintage</span>
+                            <span>Filters</span>
+                        </button>
+                        <div id="filters-section" class="grid grid-cols-3 gap-2 px-2 pt-2" style="display: none;">
+                            <button onclick="quickEdit('apply original no filter')" class="filter-preview aspect-square rounded-md bg-gray-600 bg-cover bg-center" style="background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMzc0MTUxIi8+Cjx0ZXh0IHg9IjMyIiB5PSIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOUNBM0FGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcmlnaW5hbDwvdGV4dD4KPHN2Zz4=)"></button>
+                            <button onclick="quickEdit('apply black and white filter')" class="filter-preview aspect-square rounded-md bg-gray-600 bg-cover bg-center" style="background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjMjEyMTIxIi8+Cjx0ZXh0IHg9IjMyIiB5PSIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOUNBM0FGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CJlc8L3RleHQ+Cjwvc3ZnPg==); filter: grayscale(1)"></button>
+                            <button onclick="quickEdit('apply sepia vintage filter')" class="filter-preview aspect-square rounded-md bg-gray-600 bg-cover bg-center" style="background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjODA2MDMwIi8+Cjx0ZXh0IHg9IjMyIiB5PSIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXBpYTwvdGV4dD4KPHN2Zz4=); filter: sepia(1)"></button>
+                            <button onclick="quickEdit('invert image colors')" class="filter-preview aspect-square rounded-md bg-gray-600 bg-cover bg-center" style="background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRkZGIi8+Cjx0ZXh0IHg9IjMyIiB5PSIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbnZlcnQ8L3RleHQ+Cjwvc3ZnPg==); filter: invert(1)"></button>
+                            <button onclick="quickEdit('shift hue colors')" class="filter-preview aspect-square rounded-md bg-gray-600 bg-cover bg-center" style="background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjNDMzODY2Ii8+Cjx0ZXh0IHg9IjMyIiB5PSIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IdWU8L3RleHQ+Cjwvc3ZnPg==); filter: hue-rotate(90deg)"></button>
+                            <button onclick="quickEdit('make image brighter')" class="filter-preview aspect-square rounded-md bg-gray-600 bg-cover bg-center" style="background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjNjVBNUYzIi8+Cjx0ZXh0IHg9IjMyIiB5PSIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CcmlnaHQ8L3RleHQ+Cjwvc3ZnPg==); filter: brightness(1.5)"></button>
+                        </div>
+                    </div>
+
+                    <!-- Custom Edit -->
+                    <div class="space-y-1 p-2">
+                        <button onclick="toggleSection('custom')" class="tool-button flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-300">
+                            <span class="material-symbols-outlined text-xl">edit</span>
+                            <span>Custom Edit</span>
+                        </button>
+                        <div id="custom-section" class="space-y-3 pl-4 pt-2" style="display: none;">
+                            <textarea id="custom-prompt" class="w-full resize-none rounded-lg border border-gray-600 bg-gray-800/50 p-3 text-sm text-white placeholder:text-gray-400 focus:border-primary focus:ring-primary focus:outline-none" placeholder="Describe your edit..." rows="3"></textarea>
+                            <button onclick="applyCustomEdit()" class="w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-primary/90">
+                                Apply Edit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex flex-1 flex-col bg-background-dark/80">
+                <!-- Main Header -->
+                <div class="flex h-14 shrink-0 items-center justify-between border-b border-gray-700/50 px-6">
+                    <div class="flex items-center gap-4">
+                        <h1 id="project-title" class="text-xl font-bold text-white">New Project</h1>
+                        <!-- Quick Actions for Basic Edits -->
+                        <div id="basic-actions" class="quick-actions" style="display: none;">
+                            <button onclick="basicEdit('remove_bg')" class="basic-edit-btn">
+                                <span class="material-symbols-outlined text-sm mr-1">layers_clear</span>
+                                Remove BG
+                            </button>
+                            <button onclick="basicEdit('brighten')" class="basic-edit-btn">
+                                <span class="material-symbols-outlined text-sm mr-1">light_mode</span>
+                                Brighten
+                            </button>
+                            <button onclick="basicEdit('enhance')" class="basic-edit-btn">
+                                <span class="material-symbols-outlined text-sm mr-1">auto_fix_high</span>
+                                Enhance
+                            </button>
+                            <button onclick="basicEdit('crop_square')" class="basic-edit-btn">
+                                <span class="material-symbols-outlined text-sm mr-1">crop_square</span>
+                                Square
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="undoEdit()" id="undo-btn" class="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg border border-gray-600/50 bg-transparent px-4 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700/50 disabled:opacity-50" disabled>
+                            <span class="material-symbols-outlined text-base">undo</span>
+                            <span>Undo</span>
+                        </button>
+                        <button onclick="downloadImage()" id="export-btn" class="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg border border-gray-600/50 bg-transparent px-4 text-sm font-semibold text-gray-300 transition-all hover:bg-gray-700/50 disabled:opacity-50" disabled>
+                            <span>Export</span>
+                            <span class="material-symbols-outlined text-base">download</span>
+                        </button>
+                        <button onclick="convertTo3D()" id="convert3d-btn" class="flex h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-all hover:bg-primary/90 disabled:opacity-50" disabled>
+                            <span class="material-symbols-outlined text-base">3d_rotation</span>
+                            <span>Convert to 3D</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Edit Menu Bar -->
+                <div id="quick-edit-bar" class="flex h-12 shrink-0 items-center border-b border-gray-700/50 px-6 bg-gray-800/50" style="display: none;">
+                    <div class="flex items-center gap-2 overflow-x-auto">
+                        <!-- Color Changes -->
+                        <div class="flex items-center gap-1 pr-3 border-r border-gray-600">
+                            <span class="text-xs text-gray-400 mr-2">Colors:</span>
+                            <button onclick="quickEdit('change background to white')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">format_color_fill</span>
+                                White BG
+                            </button>
+                            <button onclick="quickEdit('remove background completely')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">layers_clear</span>
+                                Remove BG
+                            </button>
+                            <button onclick="showColorModal()" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">palette</span>
+                                Recolor
+                            </button>
+                        </div>
+
+                        <!-- Lighting & Mood -->
+                        <div class="flex items-center gap-1 pr-3 border-r border-gray-600">
+                            <span class="text-xs text-gray-400 mr-2">Lighting:</span>
+                            <button onclick="quickEdit('make image brighter and more vibrant')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">light_mode</span>
+                                Brighten
+                            </button>
+                            <button onclick="quickEdit('make image darker with mood lighting')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">dark_mode</span>
+                                Darken
+                            </button>
+                            <button onclick="quickEdit('add dramatic studio lighting')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">highlight</span>
+                                Drama
+                            </button>
+                        </div>
+
+                        <!-- Style Effects -->
+                        <div class="flex items-center gap-1 pr-3 border-r border-gray-600">
+                            <span class="text-xs text-gray-400 mr-2">Style:</span>
+                            <button onclick="quickEdit('make it look professional and clean')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">business_center</span>
+                                Clean
+                            </button>
+                            <button onclick="quickEdit('apply vintage retro filter')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">filter_vintage</span>
+                                Vintage
+                            </button>
+                            <button onclick="quickEdit('make it artistic and creative')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">brush</span>
+                                Artistic
+                            </button>
+                        </div>
+
+                        <!-- Quick Fixes -->
+                        <div class="flex items-center gap-1 pr-3 border-r border-gray-600">
+                            <span class="text-xs text-gray-400 mr-2">Enhance:</span>
+                            <button onclick="quickEdit('enhance image quality and sharpness')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">auto_fix_high</span>
+                                Sharpen
+                            </button>
+                            <button onclick="quickEdit('increase contrast and saturation')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">tune</span>
+                                Enhance
+                            </button>
+                            <button onclick="quickEdit('reduce noise and clean up image')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">cleaning_services</span>
+                                Clean Up
+                            </button>
+                        </div>
+
+                        <!-- Transformations -->
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs text-gray-400 mr-2">Transform:</span>
+                            <button onclick="quickEdit('resize image to square format')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">crop_square</span>
+                                Square
+                            </button>
+                            <button onclick="quickEdit('flip image horizontally')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">flip</span>
+                                Flip
+                            </button>
+                            <button onclick="quickEdit('rotate image 90 degrees')" class="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                                <span class="material-symbols-outlined text-sm">rotate_right</span>
+                                Rotate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canvas Area -->
+                <div class="flex-1 overflow-auto p-8">
+                    <div id="canvas-container" class="mx-auto flex h-full max-w-4xl items-center justify-center rounded-xl bg-gray-800 shadow-lg">
+                        <!-- Empty State -->
+                        <div id="empty-state" class="text-center p-12">
+                            <div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gray-700">
+                                <span class="material-symbols-outlined text-4xl text-gray-400">image</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2">Start Creating</h3>
+                            <p class="text-gray-400 mb-6">Upload an image or generate one with AI to begin editing</p>
+                            <div class="flex gap-3 justify-center">
+                                <button onclick="document.getElementById('file-input').click()" class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90 transition-colors">
+                                    <span class="material-symbols-outlined text-base">upload</span>
+                                    Upload Image
+                                </button>
+                                <button onclick="focusAIPrompt()" class="inline-flex items-center gap-2 rounded-lg border border-gray-600 px-4 py-2 text-gray-300 hover:bg-gray-700/50 transition-colors">
+                                    <span class="material-symbols-outlined text-base">auto_awesome</span>
+                                    Generate
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Image Display -->
+                        <div id="image-display" style="display: none;" class="w-full h-full flex items-center justify-center p-4">
+                            <img id="main-image" class="max-h-full max-w-full object-contain rounded-lg" alt="Working image">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progress-container" style="display: none;" class="border-t border-gray-700/50 p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span id="progress-text" class="text-gray-300">Processing...</span>
+                                <span id="progress-percent" class="text-gray-400">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div id="progress-bar" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <button onclick="cancelOperation()" class="text-gray-400 hover:text-red-400 transition-colors">
+                            <span class="material-symbols-outlined">cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+
+    <!-- Color Change Modal -->
+    <div id="color-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-md mx-4 border border-gray-600">
+            <h3 class="text-xl font-bold text-white mb-4">Change Colors</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">What color change do you want?</label>
+                    <textarea id="color-prompt" class="w-full resize-none rounded-lg border border-gray-600 bg-gray-700 p-3 text-sm text-white placeholder:text-gray-400 focus:border-primary focus:ring-primary focus:outline-none" 
+                              placeholder="e.g., change the car to red, make the shirt blue..." rows="3"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 mb-2">Quick Colors:</p>
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="setColorPrompt('change main color to red')" class="w-8 h-8 bg-red-500 rounded-full hover:scale-110 transition-transform"></button>
+                            <button onclick="setColorPrompt('change main color to blue')" class="w-8 h-8 bg-blue-500 rounded-full hover:scale-110 transition-transform"></button>
+                            <button onclick="setColorPrompt('change main color to green')" class="w-8 h-8 bg-green-500 rounded-full hover:scale-110 transition-transform"></button>
+                            <button onclick="setColorPrompt('change main color to yellow')" class="w-8 h-8 bg-yellow-500 rounded-full hover:scale-110 transition-transform"></button>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 mb-2">Common Edits:</p>
+                        <div class="space-y-1">
+                            <button onclick="setColorPrompt('change background to white')" class="text-xs text-gray-300 hover:text-white transition-colors block w-full text-left">• White background</button>
+                            <button onclick="setColorPrompt('change background to black')" class="text-xs text-gray-300 hover:text-white transition-colors block w-full text-left">• Black background</button>
+                            <button onclick="setColorPrompt('make colors more vibrant')" class="text-xs text-gray-300 hover:text-white transition-colors block w-full text-left">• More vibrant</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeColorModal()" class="flex-1 rounded-lg border border-gray-600 px-4 py-2 text-gray-300 hover:bg-gray-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="applyColorChange()" class="flex-1 rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90 transition-colors">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentImage = null;
+        let editHistory = [];
+        let isProcessing = false;
+        let sidebarCollapsed = false;
+
+        // UI Management
+        function updateUI() {
+            const hasImage = currentImage !== null;
+            const hasHistory = editHistory.length > 0;
+            
+            document.getElementById('export-btn').disabled = !hasImage;
+            document.getElementById('convert3d-btn').disabled = !hasImage;
+            document.getElementById('undo-btn').disabled = !hasHistory;
+            
+            // Show/hide quick edit bar and basic actions
+            document.getElementById('quick-edit-bar').style.display = hasImage ? 'flex' : 'none';
+            document.getElementById('basic-actions').style.display = hasImage ? 'flex' : 'none';
+            
+            if (hasImage) {
+                document.getElementById('empty-state').style.display = 'none';
+                document.getElementById('image-display').style.display = 'flex';
+                document.getElementById('project-title').textContent = 'Image Editing Project';
+                // Auto-collapse sidebar when image is loaded for more canvas space
+                if (!sidebarCollapsed) {
+                    toggleSidebar();
+                }
+            } else {
+                document.getElementById('empty-state').style.display = 'block';
+                document.getElementById('image-display').style.display = 'none';
+                document.getElementById('project-title').textContent = 'New Project';
+            }
+        }
+
+        function displayImage(imageData, editDescription = null) {
+            currentImage = imageData;
+            document.getElementById('main-image').src = 'data:image/png;base64,' + imageData;
+            
+            if (editDescription) {
+                editHistory.push({
+                    image: imageData,
+                    description: editDescription,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+            }
+            
+            updateUI();
+        }
+
+        // Section Toggle
+        function toggleSection(sectionName) {
+            const section = document.getElementById(sectionName + '-section');
+            const button = section.previousElementSibling;
+            
+            // Close all other sections
+            document.querySelectorAll('[id$="-section"]').forEach(s => {
+                if (s !== section) {
+                    s.style.display = 'none';
+                    s.previousElementSibling.classList.remove('active');
+                }
+            });
+            
+            // Toggle current section
+            if (section.style.display === 'none' || section.style.display === '') {
+                section.style.display = 'block';
+                button.classList.add('active');
+            } else {
+                section.style.display = 'none';
+                button.classList.remove('active');
+            }
+        }
+
+        // File Upload
+        const fileInput = document.getElementById('file-input');
+        const uploadArea = document.querySelector('.upload-area');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleImageUpload(files[0]);
+                }
+            });
+        }
+
+        function handleImageUpload(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                displayImage(base64Data, 'Uploaded image');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Progress Management
+        function showProgress(text, percent = 0) {
+            isProcessing = true;
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('progress-text').textContent = text;
+            updateProgress(percent);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-percent').textContent = Math.round(percent) + '%';
+        }
+
+        function hideProgress() {
+            isProcessing = false;
+            document.getElementById('progress-container').style.display = 'none';
+        }
+
+        function cancelOperation() {
+            if (isProcessing) {
+                hideProgress();
+            }
+        }
+
+        // AI Generation
+        async function generateWithAI() {
+            const prompt = document.getElementById('ai-prompt').value.trim();
+            if (!prompt) {
+                alert('Please enter a description for your image');
+                return;
+            }
+
+            showProgress('Generating image with AI...', 0);
+            
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        guidance_scale: 7.5,
+                        num_inference_steps: 28,
+                        width: 1024,
+                        height: 1024
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayImage(result.image, `Generated: ${prompt}`);
+                    hideProgress();
+                } else {
+                    hideProgress();
+                    alert('Error: ' + (result.message || result.detail || 'Failed to generate image'));
+                }
+                
+            } catch (error) {
+                hideProgress();
+                alert('Error generating image: ' + error.message);
+            }
+        }
+
+        // Quick Edits
+        async function quickEdit(prompt) {
+            if (!currentImage) {
+                alert('Please upload or generate an image first');
+                return;
+            }
+
+            showProgress(`Applying: ${prompt}`, 0);
+            
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        image_base64: currentImage,
+                        guidance_scale: 3.5,
+                        num_inference_steps: 28,
+                        width: 1024,
+                        height: 1024
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayImage(result.image, prompt);
+                    hideProgress();
+                } else {
+                    hideProgress();
+                    alert('Error: ' + (result.message || result.detail || 'Failed to edit image'));
+                }
+            } catch (error) {
+                hideProgress();
+                alert('Error editing image: ' + error.message);
+            }
+        }
+
+        // Custom Edit
+        async function applyCustomEdit() {
+            const prompt = document.getElementById('custom-prompt').value.trim();
+            if (!prompt) {
+                alert('Please enter an edit description');
+                return;
+            }
+
+            await quickEdit(prompt);
+            document.getElementById('custom-prompt').value = '';
+        }
+
+        // Adjustment Functions
+        function applyAdjustment() {
+            if (!currentImage) return;
+            
+            const brightness = document.getElementById('brightness-slider').value;
+            const contrast = document.getElementById('contrast-slider').value;
+            const saturation = document.getElementById('saturation-slider').value;
+            const hue = document.getElementById('hue-slider').value;
+            
+            let adjustmentPrompt = 'adjust image with ';
+            const adjustments = [];
+            
+            if (brightness != 0) adjustments.push(`brightness ${brightness > 0 ? 'increased' : 'decreased'} by ${Math.abs(brightness)}%`);
+            if (contrast != 0) adjustments.push(`contrast ${contrast > 0 ? 'increased' : 'decreased'} by ${Math.abs(contrast)}%`);
+            if (saturation != 0) adjustments.push(`saturation ${saturation > 0 ? 'increased' : 'decreased'} by ${Math.abs(saturation)}%`);
+            if (hue != 0) adjustments.push(`hue shifted by ${hue} degrees`);
+            
+            if (adjustments.length > 0) {
+                adjustmentPrompt += adjustments.join(', ');
+                quickEdit(adjustmentPrompt);
+            }
+        }
+
+        // Utility Functions
+        function undoEdit() {
+            if (editHistory.length > 1) {
+                editHistory.pop();
+                const previous = editHistory[editHistory.length - 1];
+                currentImage = previous.image;
+                document.getElementById('main-image').src = 'data:image/png;base64,' + currentImage;
+                updateUI();
+            } else if (editHistory.length === 1) {
+                editHistory = [];
+                currentImage = null;
+                updateUI();
+            }
+        }
+
+        function downloadImage() {
+            if (currentImage) {
+                const link = document.createElement('a');
+                link.download = 'make3d-edited-image.png';
+                link.href = 'data:image/png;base64,' + currentImage;
+                link.click();
+            }
+        }
+
+        function convertTo3D() {
+            if (!currentImage) {
+                alert('Please create or upload an image first');
+                return;
+            }
+            
+            showProgress('Converting to 3D model...', 0);
+            
+            setTimeout(() => {
+                hideProgress();
+                alert('3D conversion will be implemented with Hunyuan 3D integration');
+            }, 3000);
+        }
+
+        function newProject() {
+            if (confirm('Start a new project? Current work will be lost.')) {
+                currentImage = null;
+                editHistory = [];
+                updateUI();
+                // Reset sliders
+                document.getElementById('brightness-slider').value = 0;
+                document.getElementById('contrast-slider').value = 0;
+                document.getElementById('saturation-slider').value = 0;
+                document.getElementById('hue-slider').value = 0;
+                document.getElementById('ai-prompt').value = '';
+                document.getElementById('custom-prompt').value = '';
+            }
+        }
+
+        function focusAIPrompt() {
+            document.getElementById('ai-prompt').focus();
+        }
+
+        // Color Modal Functions
+        function showColorModal() {
+            document.getElementById('color-modal').style.display = 'flex';
+            document.getElementById('color-prompt').focus();
+        }
+
+        function closeColorModal() {
+            document.getElementById('color-modal').style.display = 'none';
+            document.getElementById('color-prompt').value = '';
+        }
+
+        function setColorPrompt(prompt) {
+            document.getElementById('color-prompt').value = prompt;
+        }
+
+        async function applyColorChange() {
+            const prompt = document.getElementById('color-prompt').value.trim();
+            if (!prompt) {
+                alert('Please enter a color change description');
+                return;
+            }
+            
+            closeColorModal();
+            await quickEdit(prompt);
+        }
+
+        // Sidebar Toggle Function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            
+            sidebarCollapsed = !sidebarCollapsed;
+            
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                toggleBtn.classList.add('collapsed');
+                toggleIcon.textContent = 'menu';
+            } else {
+                sidebar.classList.remove('collapsed');
+                toggleBtn.classList.remove('collapsed');
+                toggleIcon.textContent = 'menu_open';
+            }
+        }
+
+        // Basic Edit Functions (non-Flux for simple operations)
+        async function basicEdit(operation) {
+            if (!currentImage) {
+                alert('Please upload or generate an image first');
+                return;
+            }
+
+            let endpoint = '/api/basic-edit';
+            let prompt = '';
+            
+            switch(operation) {
+                case 'remove_bg':
+                    endpoint = '/api/remove-background';
+                    prompt = 'Removing background';
+                    break;
+                case 'brighten':
+                    endpoint = '/api/adjust-image';
+                    prompt = 'Brightening image';
+                    break;
+                case 'enhance':
+                    endpoint = '/api/enhance-image';
+                    prompt = 'Enhancing image quality';
+                    break;
+                case 'crop_square':
+                    endpoint = '/api/crop-image';
+                    prompt = 'Cropping to square';
+                    break;
+                default:
+                    await quickEdit(operation);
+                    return;
+            }
+
+            showProgress(prompt, 0);
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_base64: currentImage,
+                        operation: operation
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayImage(result.image, prompt);
+                    hideProgress();
+                } else {
+                    // Fallback to Flux if basic operation fails
+                    hideProgress();
+                    const fallbackPrompts = {
+                        'remove_bg': 'remove background completely',
+                        'brighten': 'make image brighter and more vibrant',
+                        'enhance': 'enhance image quality and sharpness',
+                        'crop_square': 'crop image to square aspect ratio'
+                    };
+                    await quickEdit(fallbackPrompts[operation] || operation);
+                }
+            } catch (error) {
+                hideProgress();
+                // Fallback to Flux on error
+                const fallbackPrompts = {
+                    'remove_bg': 'remove background completely',
+                    'brighten': 'make image brighter and more vibrant',
+                    'enhance': 'enhance image quality and sharpness',
+                    'crop_square': 'crop image to square aspect ratio'
+                };
+                await quickEdit(fallbackPrompts[operation] || operation);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUI();
+            
+            // Open adjustments section by default
+            document.getElementById('adjustments-section').style.display = 'block';
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'z':
+                            e.preventDefault();
+                            undoEdit();
+                            break;
+                        case 'o':
+                            e.preventDefault();
+                            document.getElementById('file-input').click();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            downloadImage();
+                            break;
+                        case 'Escape':
+                            e.preventDefault();
+                            closeColorModal();
+                            break;
+                    }
+                }
+                
+                // Close modal on Escape key
+                if (e.key === 'Escape') {
+                    closeColorModal();
+                }
+            });
+            
+            // Close modal when clicking outside
+            document.getElementById('color-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeColorModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

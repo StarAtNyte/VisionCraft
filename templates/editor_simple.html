@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Make3D Studio - Image Editor</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1f71d6",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"],
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        };
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+        
+        /* Glass morphism effects */
+        .glass {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .glass-dark {
+            backdrop-filter: blur(20px);
+            background: rgba(17, 24, 33, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Upload area with enhanced styling */
+        .upload-area {
+            background: linear-gradient(135deg, rgba(31, 113, 214, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%);
+            border: 2px dashed transparent;
+            background-clip: padding-box;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 2px;
+            background: linear-gradient(135deg, #1f71d6, #9333ea);
+            border-radius: inherit;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: xor;
+            -webkit-mask-composite: xor;
+        }
+        .upload-area:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(31, 113, 214, 0.15);
+        }
+        .upload-area.dragover {
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px rgba(31, 113, 214, 0.2);
+        }
+        
+        /* Enhanced button styles */
+        .edit-button {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .edit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .edit-button:active {
+            transform: translateY(0);
+        }
+        .edit-button.primary {
+            background: linear-gradient(135deg, #1f71d6 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+        }
+        .edit-button.primary:hover {
+            background: linear-gradient(135deg, #1557b0 0%, #2563eb 100%);
+            box-shadow: 0 8px 25px rgba(31, 113, 214, 0.3);
+        }
+        .edit-button.success {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            border: none;
+        }
+        .edit-button.success:hover {
+            background: linear-gradient(135deg, #047857 0%, #059669 100%);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+        .edit-button.purple {
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+            color: white;
+            border: none;
+        }
+        .edit-button.purple:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.3);
+        }
+        
+        /* Image container with glow effect */
+        .image-container {
+            position: relative;
+            max-height: calc(100vh - 200px);
+            overflow: hidden;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        .image-container:hover {
+            box-shadow: 0 35px 70px rgba(0, 0, 0, 0.2);
+        }
+        .main-image {
+            width: 100%;
+            height: auto;
+            max-height: calc(100vh - 200px);
+            object-fit: contain;
+            border-radius: 1rem;
+        }
+        
+        /* Menu bar with gradient */
+        .menu-bar {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 250, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .dark .menu-bar {
+            background: linear-gradient(135deg, rgba(17, 24, 33, 0.9) 0%, rgba(31, 41, 55, 0.9) 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Side panel with enhanced glass effect */
+        .side-panel {
+            backdrop-filter: blur(20px);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.8) 100%);
+            border-left: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .dark .side-panel {
+            background: linear-gradient(180deg, rgba(17, 24, 33, 0.8) 0%, rgba(31, 41, 55, 0.8) 100%);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Status bar with subtle gradient */
+        .status-bar {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0%, rgba(248, 249, 250, 0.7) 100%);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .dark .status-bar {
+            background: linear-gradient(90deg, rgba(17, 24, 33, 0.7) 0%, rgba(31, 41, 55, 0.7) 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Progress bar with gradient */
+        .progress-bar-bg {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #1f71d6 0%, #3b82f6 50%, #9333ea 100%);
+            box-shadow: 0 0 20px rgba(31, 113, 214, 0.4);
+        }
+        
+        /* Logo with subtle glow */
+        .logo {
+            filter: drop-shadow(0 0 10px rgba(31, 113, 214, 0.3));
+        }
+        
+        /* Modal enhancements */
+        .modal-backdrop {
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+        .dark .modal-content {
+            background: linear-gradient(135deg, rgba(17, 24, 33, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* History items with hover effects */
+        .history-item {
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .history-item:hover {
+            transform: translateX(4px);
+            border-color: rgba(31, 113, 214, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Preset buttons with better styling */
+        .preset-button {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 249, 250, 0.8) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .preset-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            border-color: rgba(31, 113, 214, 0.3);
+        }
+        .dark .preset-button {
+            background: linear-gradient(135deg, rgba(55, 65, 81, 0.8) 0%, rgba(75, 85, 99, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Input field enhancements */
+        .enhanced-input {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .enhanced-input:focus {
+            border-color: #1f71d6;
+            box-shadow: 0 0 0 3px rgba(31, 113, 214, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .dark .enhanced-input {
+            background: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dark .enhanced-input:focus {
+            background: rgba(55, 65, 81, 0.95);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Animated background */
+        .animated-bg {
+            background: linear-gradient(-45deg, #f8f9fa, #e9ecef, #f1f3f4, #f8f9fa);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        .dark .animated-bg {
+            background: linear-gradient(-45deg, #111821, #1f2937, #374151, #111821);
+            background-size: 400% 400%;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Floating animation */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Ripple effect for buttons */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        .ripple::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .ripple:active::before {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body class="font-display animated-bg text-gray-800 dark:text-gray-200">
+    <!-- Menu Bar -->
+    <header class="menu-bar flex h-16 shrink-0 items-center justify-between px-6">
+        <!-- Left: Logo & Title -->
+        <div class="flex items-center gap-4">
+            <div class="logo text-primary size-7 floating">
+                <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                    <g clip-path="url(#clip0_6_535)">
+                        <path clip-rule="evenodd" d="M47.2426 24L24 47.2426L0.757355 24L24 0.757355L47.2426 24ZM12.2426 21H35.7574L24 9.24264L12.2426 21Z" fill="currentColor" fill-rule="evenodd"></path>
+                    </g>
+                    <defs>
+                        <clipPath id="clip0_6_535">
+                            <rect fill="white" height="48" width="48"></rect>
+                        </clipPath>
+                    </defs>
+                </svg>
+            </div>
+            <h2 class="text-lg font-bold bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent">Make3D Studio</h2>
+        </div>
+
+        <!-- Center: Simple File Menu -->
+        <div class="flex items-center gap-2">
+            <button onclick="document.getElementById('file-input').click()" class="edit-button ripple flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium">
+                <span class="material-symbols-outlined text-base">upload</span>
+                Upload Image
+            </button>
+            <button onclick="generateFromText()" class="edit-button primary ripple flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium">
+                <span class="material-symbols-outlined text-base">auto_awesome</span>
+                Generate Image
+            </button>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-2">
+            <button onclick="undoEdit()" id="undo-btn" class="edit-button ripple flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <span class="material-symbols-outlined text-base">undo</span>
+                Undo
+            </button>
+            <button onclick="downloadImage()" id="download-btn" class="edit-button success ripple flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <span class="material-symbols-outlined text-base">download</span>
+                Download
+            </button>
+            <button onclick="convertTo3D()" id="3d-btn" class="edit-button purple ripple flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <span class="material-symbols-outlined text-base">view_in_ar</span>
+                3D Convert
+            </button>
+        </div>
+    </header>
+
+    <div class="flex h-[calc(100vh-4rem)]">
+        <!-- Main Workspace -->
+        <div class="flex-1 flex flex-col">
+            <!-- Image Display Area -->
+            <div class="flex-1 p-6 flex items-center justify-center">
+                <div id="image-workspace" class="w-full h-full flex items-center justify-center">
+                    <!-- Empty State -->
+                    <div id="empty-state" class="text-center">
+                        <div class="upload-area rounded-xl p-12 cursor-pointer max-w-md mx-auto" onclick="document.getElementById('file-input').click()">
+                            <div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
+                                <span class="material-symbols-outlined text-4xl text-primary">image</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Start Editing</h3>
+                            <p class="text-gray-600 dark:text-gray-300 mb-4">Upload an image or generate one with AI</p>
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="document.getElementById('file-input').click()" class="edit-button primary ripple inline-flex items-center gap-2 rounded-lg px-4 py-2">
+                                    <span class="material-symbols-outlined text-base">upload</span>
+                                    Upload Image
+                                </button>
+                                <button onclick="generateFromText()" class="edit-button ripple inline-flex items-center gap-2 rounded-lg px-4 py-2 border border-primary text-primary">
+                                    <span class="material-symbols-outlined text-base">auto_awesome</span>
+                                    Generate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Display -->
+                    <div id="image-display" style="display: none;" class="image-container border border-gray-300 dark:border-gray-600">
+                        <img id="main-image" class="main-image" alt="Working image">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Status Bar -->
+            <div id="status-bar" class="status-bar border-t p-4">
+                <div class="flex items-center justify-between">
+                    <div id="status-text" class="text-sm text-gray-600 dark:text-gray-400">
+                        Ready to edit
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div id="progress-container" style="display: none;" class="flex-1 max-w-md mx-4">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span id="progress-text">Processing...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full progress-bar-bg rounded-full h-2">
+                            <div id="progress-bar" class="progress-bar h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <span id="image-info"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div id="side-panel" class="side-panel w-80 p-6 overflow-y-auto">
+            <div class="space-y-6">
+                <!-- Quick Adjustments -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Adjustments</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="quickEdit('make it brighter')" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium">
+                            <span class="material-symbols-outlined text-base">light_mode</span>
+                            Brighter
+                        </button>
+                        <button onclick="quickEdit('make it darker')" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium">
+                            <span class="material-symbols-outlined text-base">dark_mode</span>
+                            Darker
+                        </button>
+                        <button onclick="quickEdit('increase contrast and saturation')" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium">
+                            <span class="material-symbols-outlined text-base">tune</span>
+                            Enhance
+                        </button>
+                        <button onclick="quickEdit('apply vintage film effect')" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium">
+                            <span class="material-symbols-outlined text-base">filter_vintage</span>
+                            Vintage
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Background & Colors -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Background & Colors</h3>
+                    <div class="space-y-2">
+                        <button onclick="quickEdit('change background to white')" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium w-full">
+                            <span class="material-symbols-outlined text-base">format_color_fill</span>
+                            White Background
+                        </button>
+                        <button onclick="quickEdit('remove background')" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium w-full">
+                            <span class="material-symbols-outlined text-base">layers_clear</span>
+                            Remove Background
+                        </button>
+                        <button onclick="showColorPicker()" class="edit-button ripple flex items-center gap-2 rounded-lg p-3 text-sm font-medium w-full">
+                            <span class="material-symbols-outlined text-base">palette</span>
+                            Change Colors
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Style Presets -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Style Presets</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="quickEdit('make it look professional and clean')" class="preset-button rounded-lg p-3 text-sm font-medium">
+                            Professional
+                        </button>
+                        <button onclick="quickEdit('add artistic painting effect')" class="preset-button rounded-lg p-3 text-sm font-medium">
+                            Artistic
+                        </button>
+                        <button onclick="quickEdit('make it look like a movie scene')" class="preset-button rounded-lg p-3 text-sm font-medium">
+                            Cinematic
+                        </button>
+                        <button onclick="quickEdit('apply black and white effect')" class="preset-button rounded-lg p-3 text-sm font-medium">
+                            B&W
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Edit -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Custom Edit</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Describe your edit</label>
+                            <textarea id="custom-prompt" class="enhanced-input w-full rounded-lg p-3 text-sm" 
+                                      placeholder="e.g., change the sky to sunset, add vintage filter..." rows="3"></textarea>
+                        </div>
+                        <button onclick="applyCustomEdit()" class="edit-button primary ripple w-full rounded-lg px-4 py-3 font-semibold">
+                            Apply Edit
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Edit History -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Edit History</h3>
+                    <div id="history-list" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No edits yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-input" accept="image/*" style="display: none;">
+
+    <!-- Generate Modal -->
+    <div id="generate-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center z-50" style="display: none;">
+        <div class="modal-content rounded-xl p-8 max-w-md mx-4">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Generate Image</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Describe what you want to create</label>
+                    <textarea id="generate-prompt" class="enhanced-input w-full rounded-lg p-3 text-sm" 
+                              placeholder="e.g., a red chair with modern design..." rows="3"></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeGenerateModal()" class="edit-button ripple flex-1 rounded-lg px-4 py-2">
+                        Cancel
+                    </button>
+                    <button onclick="executeGenerate()" class="edit-button primary ripple flex-1 rounded-lg px-4 py-2">
+                        Generate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div id="color-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center z-50" style="display: none;">
+        <div class="modal-content rounded-xl p-8 max-w-md mx-4">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Change Colors</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">What color change do you want?</label>
+                    <textarea id="color-prompt" class="enhanced-input w-full rounded-lg p-3 text-sm" 
+                              placeholder="e.g., change the shirt to blue, make the car red..." rows="3"></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeColorModal()" class="edit-button ripple flex-1 rounded-lg px-4 py-2">
+                        Cancel
+                    </button>
+                    <button onclick="executeColorChange()" class="edit-button primary ripple flex-1 rounded-lg px-4 py-2">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentImage = null;
+        let editHistory = [];
+        let isProcessing = false;
+
+        // UI state management
+        function updateUI() {
+            const hasImage = currentImage !== null;
+            const hasHistory = editHistory.length > 0;
+            
+            document.getElementById('download-btn').disabled = !hasImage;
+            document.getElementById('3d-btn').disabled = !hasImage;
+            document.getElementById('undo-btn').disabled = !hasHistory;
+            
+            if (hasImage) {
+                document.getElementById('empty-state').style.display = 'none';
+                document.getElementById('image-display').style.display = 'block';
+                updateImageInfo();
+            } else {
+                document.getElementById('empty-state').style.display = 'block';
+                document.getElementById('image-display').style.display = 'none';
+            }
+        }
+
+        function updateImageInfo() {
+            const img = document.getElementById('main-image');
+            if (img && img.naturalWidth) {
+                document.getElementById('image-info').textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+            }
+        }
+
+        function updateStatus(text) {
+            document.getElementById('status-text').textContent = text;
+        }
+
+        // Image handling
+        function displayImage(imageData, editDescription = null) {
+            currentImage = imageData;
+            document.getElementById('main-image').src = 'data:image/png;base64,' + imageData;
+            
+            if (editDescription) {
+                editHistory.push({
+                    image: imageData,
+                    description: editDescription,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                updateHistoryList();
+            }
+            
+            updateUI();
+            updateStatus('Image ready for editing');
+        }
+
+        function updateHistoryList() {
+            const historyList = document.getElementById('history-list');
+            if (editHistory.length === 0) {
+                historyList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No edits yet</p>';
+                return;
+            }
+            
+            historyList.innerHTML = editHistory.map((edit, index) => `
+                <div class="history-item flex items-center justify-between p-2 rounded-lg">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${edit.description}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${edit.timestamp}</p>
+                    </div>
+                    <button onclick="revertToEdit(${index})" class="edit-button primary text-sm px-2 py-1 rounded">
+                        Revert
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // File upload
+        const fileInput = document.getElementById('file-input');
+        const uploadArea = document.querySelector('.upload-area');
+
+        // Drag and drop
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleImageUpload(files[0]);
+                }
+            });
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+
+        function handleImageUpload(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                displayImage(base64Data);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Progress management
+        function showProgress(text, percent = 0) {
+            isProcessing = true;
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('progress-text').textContent = text;
+            updateProgress(percent);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-percent').textContent = Math.round(percent) + '%';
+        }
+
+        function hideProgress() {
+            isProcessing = false;
+            document.getElementById('progress-container').style.display = 'none';
+        }
+
+        // API calls
+        async function makeEditRequest(prompt, isGeneration = false) {
+            const requestData = {
+                prompt: prompt,
+                guidance_scale: 7.5,
+                num_inference_steps: 28,
+                width: 1024,
+                height: 1024
+            };
+
+            if (!isGeneration && currentImage) {
+                requestData.image_base64 = currentImage;
+            }
+
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            return response.json();
+        }
+
+        // Edit functions
+        async function quickEdit(prompt) {
+            if (!currentImage) {
+                alert('Please upload an image first');
+                return;
+            }
+
+            showProgress(`Applying: ${prompt}`, 0);
+            
+            try {
+                const result = await makeEditRequest(prompt);
+                
+                if (result.success) {
+                    displayImage(result.image, prompt);
+                    hideProgress();
+                } else {
+                    hideProgress();
+                    alert('Error: ' + (result.message || result.detail || 'Failed to edit image'));
+                }
+            } catch (error) {
+                hideProgress();
+                alert('Error editing image: ' + error.message);
+            }
+        }
+
+        async function applyCustomEdit() {
+            const prompt = document.getElementById('custom-prompt').value.trim();
+            if (!prompt) {
+                alert('Please enter an edit description');
+                return;
+            }
+
+            await quickEdit(prompt);
+            document.getElementById('custom-prompt').value = '';
+        }
+
+        // Generation
+        function generateFromText() {
+            document.getElementById('generate-modal').style.display = 'flex';
+        }
+
+        function closeGenerateModal() {
+            document.getElementById('generate-modal').style.display = 'none';
+        }
+
+        async function executeGenerate() {
+            const prompt = document.getElementById('generate-prompt').value.trim();
+            if (!prompt) {
+                alert('Please enter a description');
+                return;
+            }
+
+            closeGenerateModal();
+            showProgress('Generating image...', 0);
+            
+            try {
+                const result = await makeEditRequest(prompt, true);
+                
+                if (result.success) {
+                    displayImage(result.image, `Generated: ${prompt}`);
+                    hideProgress();
+                } else {
+                    hideProgress();
+                    alert('Error: ' + (result.message || result.detail || 'Failed to generate image'));
+                }
+            } catch (error) {
+                hideProgress();
+                alert('Error generating image: ' + error.message);
+            }
+            
+            document.getElementById('generate-prompt').value = '';
+        }
+
+        // Color picker
+        function showColorPicker() {
+            if (!currentImage) {
+                alert('Please upload an image first');
+                return;
+            }
+            document.getElementById('color-modal').style.display = 'flex';
+        }
+
+        function closeColorModal() {
+            document.getElementById('color-modal').style.display = 'none';
+        }
+
+        async function executeColorChange() {
+            const prompt = document.getElementById('color-prompt').value.trim();
+            if (!prompt) {
+                alert('Please describe the color change');
+                return;
+            }
+
+            closeColorModal();
+            await quickEdit(prompt);
+            document.getElementById('color-prompt').value = '';
+        }
+
+        // History management
+        function undoEdit() {
+            if (editHistory.length > 1) {
+                editHistory.pop(); // Remove current
+                const previous = editHistory[editHistory.length - 1];
+                currentImage = previous.image;
+                document.getElementById('main-image').src = 'data:image/png;base64,' + currentImage;
+                updateHistoryList();
+                updateUI();
+                updateStatus('Undid last edit');
+            } else if (editHistory.length === 1) {
+                editHistory = [];
+                currentImage = null;
+                updateUI();
+                updateStatus('Reset to empty state');
+            }
+        }
+
+        function revertToEdit(index) {
+            if (index < editHistory.length) {
+                editHistory = editHistory.slice(0, index + 1);
+                const edit = editHistory[index];
+                currentImage = edit.image;
+                document.getElementById('main-image').src = 'data:image/png;base64,' + currentImage;
+                updateHistoryList();
+                updateUI();
+                updateStatus(`Reverted to: ${edit.description}`);
+            }
+        }
+
+        // Export functions
+        function downloadImage() {
+            if (currentImage) {
+                const link = document.createElement('a');
+                link.download = 'make3d-edited-image.png';
+                link.href = 'data:image/png;base64,' + currentImage;
+                link.click();
+                updateStatus('Image downloaded');
+            }
+        }
+
+        function convertTo3D() {
+            if (!currentImage) {
+                alert('Please create or upload an image first');
+                return;
+            }
+            
+            showProgress('Converting to 3D model...', 0);
+            
+            // Simulate 3D conversion
+            setTimeout(() => {
+                hideProgress();
+                alert('3D conversion will be implemented with Hunyuan 3D integration');
+                updateStatus('3D conversion completed');
+            }, 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'z':
+                        e.preventDefault();
+                        undoEdit();
+                        break;
+                    case 'o':
+                        e.preventDefault();
+                        document.getElementById('file-input').click();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        downloadImage();
+                        break;
+                    case 'g':
+                        e.preventDefault();
+                        generateFromText();
+                        break;
+                }
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUI();
+            updateStatus('Ready to edit');
+        });
+    </script>
+</body>
+</html>
