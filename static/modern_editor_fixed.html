@@ -278,12 +278,13 @@
             const [progress, setProgress] = useState(0);
             const [panelClosing, setPanelClosing] = useState(false);
             const [fabricCanvas, setFabricCanvas] = useState(null);
+            const [colorVariants, setColorVariants] = useState([]); // Shared state for color variants
 
             const tools = [
                 { id: 'upload', name: 'Upload/Import', icon: Icons.Upload, description: 'Upload images or import from URL' },
                 { id: 'basic', name: 'Basic Edits', icon: Icons.Sliders, description: 'Crop, rotate, adjust brightness & filters' },
                 { id: 'ai', name: 'AI Edits', icon: Icons.Wand2, description: 'AI-powered editing with Flux integration' },
-                { id: 'shots', name: 'Generate Shots', icon: Icons.Camera, description: 'Create multiple product variations' },
+                { id: 'shots', name: 'Color Variants', icon: Icons.Palette, description: 'Generate different color variations' },
                 { id: 'lifestyle', name: 'Lifestyle Mockups', icon: Icons.Users, description: 'Show products in real environments' },
                 { id: 'animation', name: 'Animation', icon: Icons.Play, description: 'Create animated product videos' },
                 { id: '3d', name: '3D Mockups', icon: Icons.Box, description: 'Generate 3D product renders' },
@@ -344,6 +345,8 @@
                                 activeToolId={activeToolId}
                                 fabricCanvas={fabricCanvas}
                                 setFabricCanvas={setFabricCanvas}
+                                colorVariants={colorVariants}
+                                setColorVariants={setColorVariants}
                             />
                         </div>
 
@@ -358,6 +361,8 @@
                                 setProcessingText={setProcessingText}
                                 setProgress={setProgress}
                                 isClosing={panelClosing}
+                                colorVariants={colorVariants}
+                                setColorVariants={setColorVariants}
                                 fabricCanvas={fabricCanvas}
                             />
                         )}
@@ -503,15 +508,193 @@
             );
         };
 
-        // Main Content Component - AI Generation and Upload Area
-        // Two-Column Editor Layout matching the screenshot
-        const MainContent = ({ uploadedImage, setUploadedImage, isProcessing, processingText, progress, setIsProcessing, setProcessingText, setProgress, activeToolId, fabricCanvas, setFabricCanvas }) => {
+        // Enhanced Main Content Component - AI Generation, Upload, and Lifestyle Galleries
+        const MainContent = ({ uploadedImage, setUploadedImage, isProcessing, processingText, progress, setIsProcessing, setProcessingText, setProgress, activeToolId, fabricCanvas, setFabricCanvas, colorVariants, setColorVariants }) => {
             const fileInputRef = useRef(null);
             const mainCanvasRef = useRef(null);
             const [isDragOver, setIsDragOver] = useState(false);
             const [prompt, setPrompt] = useState('');
             const [showAdvanced, setShowAdvanced] = useState(false);
             const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+            
+            // Enhanced UI states
+            const [lifestyleScenarios, setLifestyleScenarios] = useState([]);
+            const [selectedCategory, setSelectedCategory] = useState('electronics');
+            const [selectedVariants, setSelectedVariants] = useState([]);
+            const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+            const [isGeneratingScenarios, setIsGeneratingScenarios] = useState(false);
+            const [modalImage, setModalImage] = useState(null);
+            const [viewMode, setViewMode] = useState('upload'); // 'upload', 'variants', 'scenarios'
+
+            // Product categories for lifestyle scenarios
+            const productCategories = {
+                footwear: { name: 'Footwear', scenarios: [
+                    { name: 'Street Style', prompt: 'Person wearing the shoes walking on a modern city street, urban fashion photography, street style outfit, natural outdoor lighting, casual lifestyle' },
+                    { name: 'Gym Workout', prompt: 'Athletic person wearing the shoes in a modern gym, fitness environment, workout session, sports photography, dynamic fitness lifestyle' }
+                ]},
+                headphones: { name: 'Audio/Headphones', scenarios: [
+                    { name: 'Music Studio', prompt: 'Person wearing headphones in a professional music studio, music production setup, recording environment, creative workspace' },
+                    { name: 'Gaming Setup', prompt: 'Person wearing headphones at a modern gaming setup, RGB lighting, gaming desk, esports environment, tech lifestyle' }
+                ]},
+                electronics: { name: 'Electronics', scenarios: [
+                    { name: 'Modern Desk', prompt: 'Device placed on a clean modern desk setup, minimalist workspace, natural lighting, professional office environment, productivity lifestyle' },
+                    { name: 'Cafe Workspace', prompt: 'Device being used in a trendy coffee shop, remote work setup, casual work environment, modern cafe interior, digital nomad lifestyle' }
+                ]},
+                fashion: { name: 'Fashion/Accessories', scenarios: [
+                    { name: 'Fashion Portrait', prompt: 'Person wearing/using the item in a fashion photoshoot, professional styling, fashion photography, elegant lifestyle' },
+                    { name: 'Daily Routine', prompt: 'Person using the item in their daily routine, natural lifestyle, everyday moments, authentic usage' }
+                ]},
+                home: { name: 'Home/Kitchen', scenarios: [
+                    { name: 'Morning Routine', prompt: 'Product being used in a bright modern kitchen during morning routine, natural lighting, home lifestyle, cozy atmosphere' },
+                    { name: 'Living Room', prompt: 'Product in a stylish modern living room, home decor setup, comfortable home environment, lifestyle photography' }
+                ]}
+            };
+
+            const productVariants = [
+                { name: 'Classic Black', prompt: 'Transform the product to elegant matte black color scheme, sophisticated dark finish, premium black coating, luxurious black texture, maintaining all original design features and proportions' },
+                { name: 'Pure White', prompt: 'Transform the product to clean pure white color, pristine white finish, minimalist white aesthetic, crisp white coating, modern white design while keeping original shape and details' },
+                { name: 'Metallic Silver', prompt: 'Transform the product to brushed metallic silver finish, chrome-like surface, reflective silver coating, industrial metallic texture, premium metal appearance with original form' },
+                { name: 'Rose Gold', prompt: 'Transform the product to elegant rose gold finish, warm pink-gold metallic surface, luxury rose gold coating, premium blush metal texture, sophisticated rose gold aesthetic' },
+                { name: 'Ocean Blue', prompt: 'Transform the product to deep ocean blue color, rich navy blue finish, vibrant blue coating, professional blue aesthetic, maintaining original design with blue color theme' },
+                { name: 'Forest Green', prompt: 'Transform the product to forest green color scheme, natural green finish, deep emerald green coating, earthy green aesthetic, eco-friendly green appearance with original structure' }
+            ];
+
+            // Generate color variants
+            const generateColorVariants = async () => {
+                if (!uploadedImage) {
+                    alert('Please upload an image first');
+                    return;
+                }
+
+                setIsGeneratingVariants(true);
+                setIsProcessing(true);
+                setProcessingText('Generating color variants...');
+                setProgress(0);
+                
+                try {
+                    const variants = [];
+                    for (let i = 0; i < productVariants.length; i++) {
+                        const variant = productVariants[i];
+                        setProcessingText(`Generating ${variant.name}...`);
+                        setProgress((i / productVariants.length) * 100);
+
+                        const imageBase64 = uploadedImage.split(',')[1] || uploadedImage;
+                        const response = await fetch('/api/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                image_base64: imageBase64,
+                                prompt: `${variant.prompt}. Professional product photography, clean white background, studio lighting, high-quality commercial shot.`,
+                                guidance_scale: 7.0,
+                                num_inference_steps: 25,
+                                width: 1024,
+                                height: 1024
+                            })
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            variants.push({
+                                id: i,
+                                name: variant.name,
+                                image: `data:image/png;base64,${result.image}`,
+                                prompt: variant.prompt
+                            });
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                    
+                    setColorVariants(variants);
+                    setViewMode('variants');
+                    setProgress(100);
+                    setProcessingText('Color variants generated!');
+                    
+                } catch (error) {
+                    console.error('Error generating variants:', error);
+                    alert('Failed to generate color variants');
+                } finally {
+                    setTimeout(() => {
+                        setIsGeneratingVariants(false);
+                        setIsProcessing(false);
+                        setProgress(0);
+                    }, 1500);
+                }
+            };
+
+            // Generate lifestyle scenarios
+            const generateLifestyleScenarios = async () => {
+                if (selectedVariants.length === 0 && !uploadedImage) {
+                    alert('Please select color variants or upload an image first');
+                    return;
+                }
+
+                setIsGeneratingScenarios(true);
+                setIsProcessing(true);
+                setProcessingText('Generating lifestyle scenarios...');
+                setProgress(0);
+
+                try {
+                    const scenarios = productCategories[selectedCategory]?.scenarios || productCategories.electronics.scenarios;
+                    const allScenarios = [];
+                    
+                    const imagesToProcess = selectedVariants.length > 0 
+                        ? colorVariants.filter(v => selectedVariants.includes(v.id))
+                        : [{ name: 'Original', image: uploadedImage, id: 'original' }];
+
+                    const totalSteps = imagesToProcess.length * scenarios.length;
+                    let currentStep = 0;
+
+                    for (const variant of imagesToProcess) {
+                        for (const scenario of scenarios) {
+                            setProcessingText(`${scenario.name} for ${variant.name}...`);
+                            setProgress((currentStep / totalSteps) * 100);
+
+                            const imageBase64 = variant.image.includes('data:image') ? variant.image.split(',')[1] : variant.image;
+                            const response = await fetch('/api/generate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    image_base64: imageBase64,
+                                    prompt: `${scenario.prompt}. Photorealistic lifestyle photography, natural lighting, high quality commercial photography, real-world usage scenario.`,
+                                    guidance_scale: 6.5,
+                                    num_inference_steps: 25,
+                                    width: 1024,
+                                    height: 1024
+                                })
+                            });
+
+                            const result = await response.json();
+                            if (result.success) {
+                                allScenarios.push({
+                                    id: `${variant.name}-${scenario.name}`,
+                                    variantName: variant.name,
+                                    variantImage: variant.image,
+                                    scenarioName: scenario.name,
+                                    image: `data:image/png;base64,${result.image}`
+                                });
+                            }
+
+                            currentStep++;
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                    }
+
+                    setLifestyleScenarios(allScenarios);
+                    setViewMode('scenarios');
+                    setProgress(100);
+                    setProcessingText('Lifestyle scenarios generated!');
+                    
+                } catch (error) {
+                    console.error('Error generating scenarios:', error);
+                    alert('Failed to generate lifestyle scenarios');
+                } finally {
+                    setTimeout(() => {
+                        setIsGeneratingScenarios(false);
+                        setIsProcessing(false);
+                        setProgress(0);
+                    }, 1500);
+                }
+            };
 
             // AI Edit function for persistent prompt box below canvas
             const handleAIEdit = async (promptText) => {
@@ -728,6 +911,60 @@
 
             return (
                 <div className="flex h-full w-full bg-gray-900">
+                    {/* Image Modal */}
+                    {modalImage && (
+                        <div 
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                zIndex: 10000,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '20px'
+                            }}
+                            onClick={() => setModalImage(null)}
+                        >
+                            <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+                                <img 
+                                    src={modalImage} 
+                                    style={{ 
+                                        maxWidth: '100%', 
+                                        maxHeight: '100%', 
+                                        borderRadius: '12px',
+                                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+                                    }} 
+                                />
+                                <button
+                                    onClick={() => setModalImage(null)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '-10px',
+                                        right: '-10px',
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#1f2937',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontSize: '20px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Content Area */}
                     {/* Left Column: Generation - Collapsible */}
                     <div className={`${isCollapsed ? 'w-12' : 'w-80'} bg-gray-800 border-r border-gray-700 overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out`}>
                         {isCollapsed ? (
@@ -940,14 +1177,21 @@
                             <div style={{
                                 position: 'fixed',
                                 bottom: '12px',
-                                left: activeToolId ? 'calc(50% + 180px)' : '50%',
-                                transform: 'translateX(-50%)',
+                                left: activeToolId ? '72px' : '0px',
+                                right: activeToolId ? '360px' : '0px',
                                 zIndex: 1000,
-                                width: activeToolId ? 'calc(100vw - 48px - 360px)' : 'calc(100vw - 48px)',
-                                maxWidth: activeToolId ? '600px' : '800px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                paddingLeft: '24px',
+                                paddingRight: '24px',
                                 animation: 'slideUp 0.3s ease-out',
-                                transition: 'left 0.3s ease, width 0.3s ease, max-width 0.3s ease'
+                                transition: 'left 0.3s ease, right 0.3s ease'
                             }}>
+                                <div style={{
+                                    width: '100%',
+                                    maxWidth: activeToolId ? '600px' : '800px',
+                                    transition: 'max-width 0.3s ease'
+                                }}>
                                 <div style={{
                                     background: 'rgba(26, 26, 26, 0.95)',
                                     backdropFilter: 'blur(20px)',
@@ -1056,6 +1300,7 @@
                                         }
                                     `
                                 }} />
+                                </div>
                             </div>
                         )}
 
@@ -1381,13 +1626,13 @@
         };
 
         // Tool Panel Component - Smooth Slide Animation
-        const ToolPanel = ({ toolId, onClose, uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress, isClosing, fabricCanvas }) => {
+        const ToolPanel = ({ toolId, onClose, uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress, isClosing, fabricCanvas, colorVariants, setColorVariants }) => {
             const panels = {
                 upload: <UploadPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} />,
                 basic: <BasicEditsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} fabricCanvas={fabricCanvas} />,
                 ai: <AIEditsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} />,
-                shots: <GenerateShotsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} />,
-                lifestyle: <LifestyleMockupsPanel />,
+                shots: <GenerateShotsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} colorVariants={colorVariants} setColorVariants={setColorVariants} />,
+                lifestyle: <LifestyleMockupsPanel uploadedImage={uploadedImage} setUploadedImage={setUploadedImage} setIsProcessing={setIsProcessing} setProcessingText={setProcessingText} setProgress={setProgress} colorVariants={colorVariants} />,
                 animation: <AnimationPanel />,
                 '3d': <ThreeDMockupsPanel />,
             };
@@ -1396,7 +1641,7 @@
                 upload: 'Upload & Import',
                 basic: 'Basic Edits',
                 ai: 'AI Edits',
-                shots: 'Generate Shots',
+                shots: 'Color Variants',
                 lifestyle: 'Lifestyle Mockups',
                 animation: 'Animation',
                 '3d': '3D Mockups'
@@ -2181,19 +2426,37 @@
             );
         };
 
-        // Generate Shots Panel - Multiple Angle Generation
-        const GenerateShotsPanel = ({ uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress }) => {
+        // Color Variants Panel - Multiple Color Generation
+        const GenerateShotsPanel = ({ uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress, colorVariants, setColorVariants }) => {
             const [generatedShots, setGeneratedShots] = useState([]);
             const [selectedShot, setSelectedShot] = useState(null);
             const [isGenerating, setIsGenerating] = useState(false);
 
-            const shotAngles = [
-                { name: 'Front View', prompt: 'front view, center composition, product photography' },
-                { name: 'Side Profile', prompt: 'side view, profile angle, clean background' },
-                { name: 'Top Down', prompt: 'top-down view, overhead shot, flat lay style' },
-                { name: '45° Angle', prompt: '45 degree angle view, three-quarter perspective' },
-                { name: 'Close-up Detail', prompt: 'extreme close-up, detailed view, macro photography' },
-                { name: 'Context Shot', prompt: 'lifestyle context, in-use scenario, environmental setting' }
+            const productVariants = [
+                { 
+                    name: 'Classic Black', 
+                    prompt: 'Transform the product to elegant matte black color scheme, sophisticated dark finish, premium black coating, luxurious black texture, maintaining all original design features and proportions' 
+                },
+                { 
+                    name: 'Pure White', 
+                    prompt: 'Transform the product to clean pure white color, pristine white finish, minimalist white aesthetic, crisp white coating, modern white design while keeping original shape and details' 
+                },
+                { 
+                    name: 'Metallic Silver', 
+                    prompt: 'Transform the product to brushed metallic silver finish, chrome-like surface, reflective silver coating, industrial metallic texture, premium metal appearance with original form' 
+                },
+                { 
+                    name: 'Rose Gold', 
+                    prompt: 'Transform the product to elegant rose gold finish, warm pink-gold metallic surface, luxury rose gold coating, premium blush metal texture, sophisticated rose gold aesthetic' 
+                },
+                { 
+                    name: 'Ocean Blue', 
+                    prompt: 'Transform the product to deep ocean blue color, rich navy blue finish, vibrant blue coating, professional blue aesthetic, maintaining original design with blue color theme' 
+                },
+                { 
+                    name: 'Forest Green', 
+                    prompt: 'Transform the product to forest green color scheme, natural green finish, deep emerald green coating, earthy green aesthetic, eco-friendly green appearance with original structure' 
+                }
             ];
 
             const generateShots = async () => {
@@ -2204,28 +2467,30 @@
 
                 setIsGenerating(true);
                 setIsProcessing(true);
-                setProcessingText('Generating multiple product shots...');
+                setProcessingText('Generating color variants...');
                 setProgress(0);
                 setGeneratedShots([]);
 
                 try {
                     const shots = [];
-                    const totalShots = shotAngles.length;
+                    const totalVariants = productVariants.length;
 
-                    for (let i = 0; i < totalShots; i++) {
-                        const angle = shotAngles[i];
-                        setProcessingText(`Generating ${angle.name}...`);
-                        setProgress((i / totalShots) * 100);
+                    for (let i = 0; i < totalVariants; i++) {
+                        const variant = productVariants[i];
+                        setProcessingText(`Generating ${variant.name} variant...`);
+                        setProgress((i / totalVariants) * 100);
 
                         const imageBase64 = uploadedImage.split(',')[1] || uploadedImage;
+                        const uniquePrompt = `${variant.prompt}. Keep the exact same product design, shape, and proportions. Only change the color and finish as specified. Professional product photography, clean white background, studio lighting, high-quality commercial shot. Variant ${i + 1}: ${variant.name}`;
+                        
                         const response = await fetch('/api/generate', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 image_base64: imageBase64,
-                                prompt: `${angle.prompt}, professional product photography, studio lighting, white background, high quality, commercial photography`,
-                                guidance_scale: 7.5,
-                                num_inference_steps: 28,
+                                prompt: uniquePrompt,
+                                guidance_scale: 7.0,
+                                num_inference_steps: 30,
                                 width: 1024,
                                 height: 1024
                             })
@@ -2234,15 +2499,17 @@
                         const result = await response.json();
 
                         if (result.success) {
-                            shots.push({
+                            const variantData = {
                                 id: i,
-                                name: angle.name,
+                                name: variant.name,
                                 image: `data:image/png;base64,${result.image}`,
-                                prompt: angle.prompt
-                            });
+                                prompt: variant.prompt
+                            };
+                            shots.push(variantData);
                             setGeneratedShots([...shots]);
+                            setColorVariants([...shots]); // Save to shared state
                         } else {
-                            console.error(`Failed to generate ${angle.name}:`, result.error);
+                            console.error(`Failed to generate ${variant.name}:`, result.error);
                         }
 
                         // Small delay between requests
@@ -2250,17 +2517,17 @@
                     }
 
                     setProgress(100);
-                    setProcessingText('All shots generated successfully!');
-                    setTimeout(() => {
-                        setIsProcessing(false);
-                        setIsGenerating(false);
-                    }, 1000);
-
+                    setProcessingText('Color variants generated successfully!');
+                    
                 } catch (error) {
-                    console.error('Error generating shots:', error);
-                    alert('Error generating shots: ' + error.message);
-                    setIsProcessing(false);
-                    setIsGenerating(false);
+                    console.error('Error generating variants:', error);
+                    alert('Failed to generate variants. Please try again.');
+                } finally {
+                    setTimeout(() => {
+                        setIsGenerating(false);
+                        setIsProcessing(false);
+                        setProgress(0);
+                    }, 1500);
                 }
             };
 
@@ -2322,8 +2589,8 @@
                                 transition: 'all 0.2s ease'
                             }}
                         >
-                            <Icons.Camera style={{ width: '16px', height: '16px' }} />
-                            {isGenerating ? 'Generating...' : 'Generate Shots'}
+                            <Icons.Palette style={{ width: '16px', height: '16px' }} />
+                            {isGenerating ? 'Generating...' : 'Generate Variants'}
                         </button>
                     </div>
 
@@ -2443,14 +2710,14 @@
                                 fontWeight: '600',
                                 color: '#ffffff',
                                 margin: '0 0 12px 0'
-                            }}>Shot Angles to Generate</h5>
+                            }}>Color Variants to Generate</h5>
 
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                                 gap: '8px'
                             }}>
-                                {shotAngles.map((angle, index) => (
+                                {productVariants.map((variant, index) => (
                                     <div
                                         key={index}
                                         style={{
@@ -2467,14 +2734,14 @@
                                             color: '#14b8a6',
                                             marginBottom: '4px'
                                         }}>
-                                            {angle.name}
+                                            {variant.name}
                                         </div>
                                         <div style={{
                                             fontSize: '10px',
                                             color: '#888888',
                                             lineHeight: '1.2'
                                         }}>
-                                            {angle.prompt.split(',')[0]}
+                                            {variant.prompt.split(',')[0]}
                                         </div>
                                     </div>
                                 ))}
@@ -2484,7 +2751,512 @@
                 </div>
             );
         };
-        const LifestyleMockupsPanel = () => <div style={{ color: '#e5e5e5' }}><p>Lifestyle mockups tools.</p></div>;
+        // Lifestyle Scenarios Panel - Realistic Use Case Generation
+        const LifestyleMockupsPanel = ({ uploadedImage, setUploadedImage, setIsProcessing, setProcessingText, setProgress, colorVariants }) => {
+            const [generatedScenarios, setGeneratedScenarios] = useState([]);
+            const [selectedScenario, setSelectedScenario] = useState(null);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [detectedCategory, setDetectedCategory] = useState('electronics');
+            const [selectedVariants, setSelectedVariants] = useState([]);
+            const [selectAll, setSelectAll] = useState(false);
+
+            // Product categories and their lifestyle scenarios
+            const productCategories = {
+                footwear: {
+                    name: 'Footwear',
+                    keywords: ['shoe', 'sneaker', 'boot', 'sandal', 'heel', 'footwear'],
+                    scenarios: [
+                        { name: 'Street Style', prompt: 'Person wearing the shoes walking on a modern city street, urban fashion photography, street style outfit, natural outdoor lighting, casual lifestyle' },
+                        { name: 'Gym Workout', prompt: 'Athletic person wearing the shoes in a modern gym, fitness environment, workout session, sports photography, dynamic fitness lifestyle' },
+                        { name: 'Coffee Shop', prompt: 'Person wearing the shoes sitting in a trendy coffee shop, casual lifestyle, modern cafe interior, relaxed atmosphere, lifestyle photography' },
+                        { name: 'Park Walk', prompt: 'Person wearing the shoes walking in a beautiful park, outdoor lifestyle, natural environment, casual day out, lifestyle photography' }
+                    ]
+                },
+                headphones: {
+                    name: 'Audio/Headphones',
+                    keywords: ['headphone', 'earbud', 'speaker', 'audio', 'wireless', 'bluetooth'],
+                    scenarios: [
+                        { name: 'Music Studio', prompt: 'Person wearing headphones in a professional music studio, music production setup, recording environment, creative workspace' },
+                        { name: 'Coffee Shop Work', prompt: 'Person wearing headphones working on laptop in modern coffee shop, remote work lifestyle, productivity setup, casual work environment' },
+                        { name: 'Gaming Setup', prompt: 'Person wearing headphones at a modern gaming setup, RGB lighting, gaming desk, esports environment, tech lifestyle' },
+                        { name: 'Commute Travel', prompt: 'Person wearing headphones on public transport, commuter lifestyle, travel scene, urban transportation, daily routine' }
+                    ]
+                },
+                electronics: {
+                    name: 'Electronics',
+                    keywords: ['phone', 'laptop', 'tablet', 'computer', 'device', 'tech', 'gadget', 'mouse', 'keyboard'],
+                    scenarios: [
+                        { name: 'Modern Desk', prompt: 'Device placed on a clean modern desk setup, minimalist workspace, natural lighting, professional office environment, productivity lifestyle' },
+                        { name: 'Cafe Workspace', prompt: 'Device being used in a trendy coffee shop, remote work setup, casual work environment, modern cafe interior, digital nomad lifestyle' },
+                        { name: 'Home Office', prompt: 'Device in a comfortable home office setup, cozy workspace, personal productivity space, work from home lifestyle' },
+                        { name: 'Tech Showcase', prompt: 'Device displayed on a premium tech showcase table, studio lighting, product photography setup, luxury tech presentation' }
+                    ]
+                },
+                fashion: {
+                    name: 'Fashion/Accessories',
+                    keywords: ['watch', 'bag', 'wallet', 'jewelry', 'sunglasses', 'hat', 'accessory', 'fashion'],
+                    scenarios: [
+                        { name: 'Fashion Portrait', prompt: 'Person wearing/using the item in a fashion photoshoot, professional styling, fashion photography, elegant lifestyle' },
+                        { name: 'Daily Routine', prompt: 'Person using the item in their daily routine, natural lifestyle, everyday moments, authentic usage' },
+                        { name: 'Business Meeting', prompt: 'Professional person using the item in a modern business setting, corporate environment, business lifestyle' },
+                        { name: 'Social Event', prompt: 'Person with the item at a social gathering, party atmosphere, social lifestyle, evening event' }
+                    ]
+                },
+                home: {
+                    name: 'Home/Kitchen',
+                    keywords: ['cup', 'mug', 'bottle', 'kitchen', 'home', 'decor', 'furniture', 'appliance'],
+                    scenarios: [
+                        { name: 'Morning Routine', prompt: 'Product being used in a bright modern kitchen during morning routine, natural lighting, home lifestyle, cozy atmosphere' },
+                        { name: 'Dining Table', prompt: 'Product placed on a beautifully set dining table, home dining environment, family lifestyle, comfortable setting' },
+                        { name: 'Living Room', prompt: 'Product in a stylish modern living room, home decor setup, comfortable home environment, lifestyle photography' },
+                        { name: 'Outdoor Picnic', prompt: 'Product being used during an outdoor picnic, nature setting, outdoor lifestyle, casual outdoor dining' }
+                    ]
+                }
+            };
+
+            // Handle category selection
+            const handleCategoryChange = (category) => {
+                setDetectedCategory(category);
+            };
+
+            // Handle variant selection
+            const toggleVariantSelection = (variantId) => {
+                setSelectedVariants(prev => {
+                    if (prev.includes(variantId)) {
+                        return prev.filter(id => id !== variantId);
+                    } else {
+                        return [...prev, variantId];
+                    }
+                });
+            };
+
+            const toggleSelectAll = () => {
+                if (selectAll) {
+                    setSelectedVariants([]);
+                    setSelectAll(false);
+                } else {
+                    setSelectedVariants(colorVariants.map(v => v.id));
+                    setSelectAll(true);
+                }
+            };
+
+            // Generate lifestyle scenarios for selected variants
+            const generateScenariosForSelected = async () => {
+                if (selectedVariants.length === 0 && !uploadedImage) {
+                    alert('Please select color variants or upload an image first');
+                    return;
+                }
+
+                setIsGenerating(true);
+                setIsProcessing(true);
+                setProgress(0);
+                setGeneratedScenarios([]);
+
+                try {
+                    const scenarios = productCategories[detectedCategory]?.scenarios || productCategories.electronics.scenarios;
+                    const allScenarios = [];
+                    
+                    // If no variants selected, use the main uploaded image
+                    const imagesToProcess = selectedVariants.length > 0 
+                        ? colorVariants.filter(v => selectedVariants.includes(v.id))
+                        : [{ name: 'Original', image: uploadedImage, id: 'original' }];
+
+                    const totalSteps = imagesToProcess.length * scenarios.length;
+                    let currentStep = 0;
+
+                    for (const variant of imagesToProcess) {
+                        for (const scenario of scenarios) {
+                            setProcessingText(`Generating ${scenario.name} for ${variant.name}...`);
+                            setProgress((currentStep / totalSteps) * 100);
+
+                            const imageBase64 = variant.image.includes('data:image') ? variant.image.split(',')[1] : variant.image;
+                            const lifestylePrompt = `${scenario.prompt}. Photorealistic lifestyle photography, natural lighting, high quality commercial photography, real-world usage scenario. Include the ${variant.name.toLowerCase()} product naturally in the scene.`;
+                            
+                            const response = await fetch('/api/generate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    image_base64: imageBase64,
+                                    prompt: lifestylePrompt,
+                                    guidance_scale: 6.5,
+                                    num_inference_steps: 25,
+                                    width: 1024,
+                                    height: 1024
+                                })
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                allScenarios.push({
+                                    id: `${variant.name}-${scenario.name}-${currentStep}`,
+                                    variantName: variant.name,
+                                    variantImage: variant.image,
+                                    scenarioName: scenario.name,
+                                    image: `data:image/png;base64,${result.image}`,
+                                    prompt: scenario.prompt
+                                });
+                                setGeneratedScenarios([...allScenarios]);
+                            }
+
+                            currentStep++;
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                    }
+
+                    setProgress(100);
+                    setProcessingText('Lifestyle scenarios generated successfully!');
+                    
+                } catch (error) {
+                    console.error('Error generating scenarios:', error);
+                    alert('Failed to generate scenarios. Please try again.');
+                } finally {
+                    setTimeout(() => {
+                        setIsGenerating(false);
+                        setIsProcessing(false);
+                        setProgress(0);
+                    }, 1500);
+                }
+            };
+
+            const selectScenario = (scenario) => {
+                setSelectedScenario(scenario);
+                setUploadedImage(scenario.image);
+            };
+
+            return (
+                <div style={{ padding: '20px', color: '#e5e5e5' }}>
+                    <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
+                        Lifestyle Scenarios
+                    </h4>
+                    
+                    <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#a0a0a0', lineHeight: '1.4' }}>
+                        Select color variants and generate realistic lifestyle scenarios showing your products in real-world usage contexts.
+                    </p>
+
+                    {/* Color Variants Selection */}
+                    {colorVariants.length > 0 && (
+                        <div style={{
+                            backgroundColor: '#1a1a1a',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginBottom: '20px',
+                            border: '1px solid #404040'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <h5 style={{ fontSize: '14px', fontWeight: '600', color: '#ffffff', margin: 0 }}>
+                                    Select Color Variants ({selectedVariants.length} selected)
+                                </h5>
+                                <button
+                                    onClick={toggleSelectAll}
+                                    style={{
+                                        padding: '6px 12px',
+                                        backgroundColor: selectAll ? '#14b8a6' : '#404040',
+                                        color: selectAll ? '#000000' : '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {selectAll ? 'Deselect All' : 'Select All'}
+                                </button>
+                            </div>
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                                gap: '12px'
+                            }}>
+                                {colorVariants.map((variant) => (
+                                    <div
+                                        key={variant.id}
+                                        onClick={() => toggleVariantSelection(variant.id)}
+                                        style={{
+                                            position: 'relative',
+                                            cursor: 'pointer',
+                                            borderRadius: '8px',
+                                            overflow: 'hidden',
+                                            border: selectedVariants.includes(variant.id) ? '2px solid #14b8a6' : '1px solid #404040',
+                                            transition: 'all 0.2s ease',
+                                            backgroundColor: '#2d2d2d'
+                                        }}
+                                    >
+                                        <img
+                                            src={variant.image}
+                                            alt={variant.name}
+                                            style={{
+                                                width: '100%',
+                                                height: '80px',
+                                                objectFit: 'cover',
+                                                display: 'block'
+                                            }}
+                                        />
+                                        <div style={{
+                                            padding: '8px',
+                                            fontSize: '11px',
+                                            fontWeight: '500',
+                                            color: '#ffffff',
+                                            textAlign: 'center'
+                                        }}>
+                                            {variant.name}
+                                        </div>
+                                        {selectedVariants.includes(variant.id) && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '6px',
+                                                right: '6px',
+                                                width: '18px',
+                                                height: '18px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#14b8a6',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'white' }}>
+                                                    <path d="M5 12l5 5L20 7" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* No variants message */}
+                    {colorVariants.length === 0 && (
+                        <div style={{
+                            backgroundColor: '#1a1a1a',
+                            borderRadius: '8px',
+                            padding: '16px',
+                            marginBottom: '20px',
+                            border: '1px solid #404040',
+                            textAlign: 'center'
+                        }}>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#a0a0a0' }}>
+                                No color variants found. Go to "Color Variants" tab first to generate different colors, then return here to create lifestyle scenarios.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Category Selection */}
+                    <div style={{
+                        backgroundColor: '#1a1a1a',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        marginBottom: '20px',
+                        border: '1px solid #404040'
+                    }}>
+                        <h5 style={{
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#ffffff',
+                            margin: '0 0 12px 0'
+                        }}>Product Category</h5>
+                        
+                        <p style={{ 
+                            margin: '0 0 12px 0', 
+                            fontSize: '12px', 
+                            color: '#a0a0a0' 
+                        }}>
+                            Select your product category to get relevant lifestyle scenarios:
+                        </p>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                            gap: '8px'
+                        }}>
+                            {Object.entries(productCategories).map(([key, category]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleCategoryChange(key)}
+                                    disabled={isGenerating}
+                                    style={{
+                                        padding: '10px 8px',
+                                        backgroundColor: detectedCategory === key ? '#14b8a6' : '#404040',
+                                        color: detectedCategory === key ? '#000000' : '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontSize: '11px',
+                                        fontWeight: '600',
+                                        cursor: isGenerating ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {category.name}
+                                </button>
+                            ))}
+                        </div>
+
+                        {detectedCategory && (
+                            <div style={{
+                                marginTop: '12px',
+                                padding: '8px',
+                                backgroundColor: '#2d2d2d',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                color: '#14b8a6'
+                            }}>
+                                Selected: {productCategories[detectedCategory]?.name}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Generate Button */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <button
+                            onClick={generateScenariosForSelected}
+                            disabled={(selectedVariants.length === 0 && !uploadedImage) || isGenerating}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                backgroundColor: isGenerating ? '#666666' : '#14b8a6',
+                                color: isGenerating ? '#cccccc' : '#000000',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                cursor: ((selectedVariants.length === 0 && !uploadedImage) || isGenerating) ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <Icons.Users style={{ width: '16px', height: '16px' }} />
+                            {isGenerating ? 'Generating...' : 
+                                selectedVariants.length > 0 
+                                    ? `Generate for ${selectedVariants.length} Variant${selectedVariants.length > 1 ? 's' : ''}` 
+                                    : 'Generate Lifestyle Scenarios'}
+                        </button>
+                    </div>
+
+                    {/* Generated Scenarios Grid */}
+                    {generatedScenarios.length > 0 && (
+                        <div style={{
+                            backgroundColor: '#1a1a1a',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            border: '1px solid #404040'
+                        }}>
+                            <h5 style={{
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                color: '#ffffff',
+                                margin: '0 0 12px 0'
+                            }}>Generated Lifestyle Scenarios ({generatedScenarios.length})</h5>
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                                gap: '16px'
+                            }}>
+                                {generatedScenarios.map((scenario) => (
+                                    <div
+                                        key={scenario.id}
+                                        onClick={() => selectScenario(scenario)}
+                                        style={{
+                                            position: 'relative',
+                                            cursor: 'pointer',
+                                            borderRadius: '12px',
+                                            overflow: 'hidden',
+                                            border: selectedScenario?.id === scenario.id ? '2px solid #14b8a6' : '1px solid #404040',
+                                            transition: 'all 0.2s ease',
+                                            backgroundColor: '#2d2d2d'
+                                        }}
+                                    >
+                                        <img
+                                            src={scenario.image}
+                                            alt={`${scenario.variantName} - ${scenario.scenarioName}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '140px',
+                                                objectFit: 'cover',
+                                                display: 'block'
+                                            }}
+                                        />
+                                        
+                                        {/* Variant color indicator */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '8px',
+                                            left: '8px',
+                                            backgroundColor: 'rgba(0,0,0,0.7)',
+                                            padding: '4px 8px',
+                                            borderRadius: '12px',
+                                            fontSize: '10px',
+                                            color: '#14b8a6',
+                                            fontWeight: '600'
+                                        }}>
+                                            {scenario.variantName}
+                                        </div>
+
+                                        {/* Scenario name */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+                                            padding: '12px 8px 8px 8px',
+                                            color: 'white'
+                                        }}>
+                                            <div style={{
+                                                fontSize: '12px',
+                                                fontWeight: '600',
+                                                marginBottom: '2px'
+                                            }}>
+                                                {scenario.scenarioName}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '10px',
+                                                color: '#cccccc',
+                                                opacity: 0.8
+                                            }}>
+                                                Lifestyle Scene
+                                            </div>
+                                        </div>
+                                        {selectedScenario?.id === scenario.id && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '8px',
+                                                right: '8px',
+                                                width: '20px',
+                                                height: '20px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#14b8a6',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'white' }}>
+                                                    <path d="M5 12l5 5L20 7" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {generatedScenarios.length > 0 && (
+                                <p style={{
+                                    fontSize: '11px',
+                                    color: '#666666',
+                                    margin: '12px 0 0 0',
+                                    textAlign: 'center'
+                                }}>
+                                    Click on any scenario to use it as your main image
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
         const AnimationPanel = () => <div style={{ color: '#e5e5e5' }}><p>Animation tools.</p></div>;
         const ThreeDMockupsPanel = () => <div style={{ color: '#e5e5e5' }}><p>3D mockups tools.</p></div>;
 
