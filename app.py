@@ -477,42 +477,59 @@ async def editor_page(request: Request):
 
 @app.post("/api/remove-background")
 async def remove_background(request: BasicEditRequest):
-    """Remove background using basic image processing (fallback to Flux if fails)"""
+    """Remove background using AI-powered rembg library with fallback to basic method"""
     try:
         # Decode base64 image
         image_data = base64.b64decode(request.image_base64)
         img = Image.open(io.BytesIO(image_data)).convert("RGBA")
         
-        # Simple background removal based on edge detection and color similarity
-        # This is a basic implementation - for production, consider using rembg library
-        img_array = np.array(img)
-        
-        # Create a simple mask based on corner colors (assuming background is uniform)
-        h, w = img_array.shape[:2]
-        corner_colors = [
-            img_array[0, 0], img_array[0, w-1], 
-            img_array[h-1, 0], img_array[h-1, w-1]
-        ]
-        
-        # Find most common corner color as background
-        bg_color = corner_colors[0][:3]  # Take RGB only
-        
-        # Create mask where pixels are similar to background color
-        tolerance = 30
-        mask = np.all(np.abs(img_array[:, :, :3] - bg_color) < tolerance, axis=2)
-        
-        # Set background pixels to transparent
-        img_array[mask] = [0, 0, 0, 0]
-        
-        # Convert back to PIL image
-        result_img = Image.fromarray(img_array, 'RGBA')
-        
-        # Convert to base64
-        buffer = io.BytesIO()
-        result_img.save(buffer, format="PNG")
-        result_base64 = base64.b64encode(buffer.getvalue()).decode()
-        
-        return {"success": True, "image": result_base64}
+        try:
+            # Try using rembg for professional background removal
+            from rembg import remove
+            
+            # Convert to RGB for rembg processing
+            img_rgb = img.convert("RGB")
+            
+            # Apply AI-powered background removal
+            output = remove(img_rgb)
+            
+            # Convert to base64
+            buffer = io.BytesIO()
+            output.save(buffer, format="PNG")
+            result_base64 = base64.b64encode(buffer.getvalue()).decode()
+            
+            return {"success": True, "image": result_base64, "method": "ai"}
+            
+        except ImportError:
+            # Fallback to basic method if rembg is not available
+            img_array = np.array(img)
+            
+            # Create a simple mask based on corner colors (assuming background is uniform)
+            h, w = img_array.shape[:2]
+            corner_colors = [
+                img_array[0, 0], img_array[0, w-1], 
+                img_array[h-1, 0], img_array[h-1, w-1]
+            ]
+            
+            # Find most common corner color as background
+            bg_color = corner_colors[0][:3]  # Take RGB only
+            
+            # Create mask where pixels are similar to background color
+            tolerance = 30
+            mask = np.all(np.abs(img_array[:, :, :3] - bg_color) < tolerance, axis=2)
+            
+            # Set background pixels to transparent
+            img_array[mask] = [0, 0, 0, 0]
+            
+            # Convert back to PIL image
+            result_img = Image.fromarray(img_array, 'RGBA')
+            
+            # Convert to base64
+            buffer = io.BytesIO()
+            result_img.save(buffer, format="PNG")
+            result_base64 = base64.b64encode(buffer.getvalue()).decode()
+            
+            return {"success": True, "image": result_base64, "method": "basic"}
         
     except Exception as e:
         return {"success": False, "error": str(e)}
