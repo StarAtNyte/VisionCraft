@@ -10,6 +10,11 @@ import httpx
 import os
 from typing import Optional
 import numpy as np
+from dotenv import load_dotenv
+import fal_client
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(title="Make3D Studio", description="Transform ideas into 3D models")
 
@@ -811,58 +816,126 @@ async def lifestyle_mockup(request: dict):
 
 @app.post("/api/generate-video")
 async def generate_video(request: dict):
-    """Generate animated video using WAN 2.2 I2V"""
+    """Generate animated video using FAL Kling 2.5"""
     try:
         image_base64 = request.get("image_base64")
         prompt = request.get("prompt", "smooth product animation")
         category = request.get("category", "product")
         animation_style = request.get("animation_style", "smooth_rotation")
+        guidance_scale = request.get("guidance_scale", 3.5)
+        duration = request.get("duration", "5")  # User-specified duration (5 or 10 seconds)
         
         if not image_base64:
-            return {"success": False, "error": "No image provided"}
+            return {"success": False, "message": "No image provided"}
         
-        # Get WAN Modal app URL from environment variable
-        wan_url = os.getenv("MODAL_WAN_URL", "https://gpudashboard0--wan-animate-web-app.modal.run")
+        # Get FAL API key from environment variable
+        fal_api_key = os.getenv("FAL_KEY")
+        if not fal_api_key:
+            return {"success": False, "message": "FAL API key not configured"}
         
-        # Prepare request data for WAN 2.2 I2V
-        request_data = {
-            "image_base64": image_base64,
-            "prompt": prompt,
-            "category": category,
-            "animation_style": animation_style,
-            "height": 720,
-            "width": 1280,
-            "num_frames": 49,
-            "guidance_scale": 3.5,
-            "num_inference_steps": 30,
-            "seed": None
-        }
+        # Set FAL_KEY environment variable for fal_client
+        os.environ['FAL_KEY'] = fal_api_key
         
-        print(f"Sending video request to WAN: {request_data}")  # Debug log
-        
-        async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minute timeout for video
-            response = await client.post(
-                f"{wan_url}/generate",
-                json=request_data
-            )
+        # Convert base64 image to data URI format expected by FAL
+        if not image_base64.startswith("data:"):
+            image_url = f"data:image/png;base64,{image_base64}"
+        else:
+            image_url = image_base64
             
-            print(f"WAN response status: {response.status_code}")  # Debug log
+        # Create enhanced prompt based on category and animation style
+        enhanced_prompt = create_enhanced_prompt(prompt, category, animation_style)
+        
+        print(f"Generating video with FAL Kling 2.5: {enhanced_prompt}")
+        
+        # Use FAL client subscribe method
+        result = fal_client.subscribe(
+            "fal-ai/kling-video/v2.5-turbo/pro/image-to-video",
+            arguments={
+                "prompt": enhanced_prompt,
+                "image_url": image_url,
+                "duration": duration,
+                "negative_prompt": "blur, distort, and low quality",
+                "cfg_scale": min(guidance_scale / 7.0, 1.0)  # Convert to 0-1 range
+            },
+            with_logs=True
+        )
+        
+        # Check if we got a successful result
+        if result and "video" in result and "url" in result["video"]:
+            video_url = result["video"]["url"]
             
-            if response.status_code == 200:
-                return response.json()
-            else:
-                error_text = response.text
-                print(f"WAN error response: {error_text}")  # Debug log
-                raise HTTPException(
-                    status_code=response.status_code, 
-                    detail=f"WAN service error: {error_text}"
-                )
+            # Download the video and convert to base64
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                video_response = await client.get(video_url)
+                if video_response.status_code == 200:
+                    video_base64 = base64.b64encode(video_response.content).decode()
+                    
+                    return {
+                        "success": True,
+                        "video": video_base64,
+                        "message": "Video generated successfully with FAL Kling 2.5",
+                        "prompt_used": enhanced_prompt,
+                        "settings": {
+                            "resolution": "1280x720",
+                            "duration": f"{duration}s", 
+                            "fps": 16,
+                            "cfg_scale": min(guidance_scale / 7.0, 1.0),
+                            "model": "Kling 2.5 Turbo Pro"
+                        }
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "message": f"Failed to download generated video: {video_response.status_code}"
+                    }
+        else:
+            return {
+                "success": False,
+                "message": f"Unexpected FAL API response: {result}"
+            }
                 
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Video generation timeout - please try again")
     except Exception as e:
         print(f"Exception in generate_video: {str(e)}")  # Debug log
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": False, "message": f"Animation generation failed: {str(e)}"}
+
+def create_enhanced_prompt(base_prompt: str, category: str, animation_style: str) -> str:
+    """Create enhanced prompt based on product category and animation style"""
+    
+    # Category-specific prompt enhancements optimized for Kling 2.5
+    category_prompts = {
+        "product": "premium commercial product showcase, studio lighting, clean background",
+        "electronics": "sleek modern electronics, premium materials, high-tech aesthetic",
+        "fashion": "stylish fashion photography, elegant presentation, premium quality",
+        "jewelry": "luxury jewelry showcase, sparkling details, premium lighting",
+        "cosmetics": "beauty product photography, elegant presentation, soft lighting",
+        "furniture": "modern furniture showcase, interior design aesthetic, premium materials",
+        "automotive": "automotive product showcase, sleek design, professional presentation",
+        "food": "appetizing food presentation, fresh ingredients, culinary artistry",
+        "sports": "dynamic sports equipment, athletic performance, energetic presentation",
+        "lifestyle": "lifestyle product integration, modern living, aspirational presentation"
+    }
+    
+    # Animation style descriptions optimized for Kling 2.5
+    animation_styles = {
+        "smooth_rotation": "smooth 360-degree rotation, fluid camera movement, cinematic",
+        "gentle_float": "gentle floating motion, ethereal movement, soft transitions",
+        "dynamic_showcase": "dynamic product showcase, multiple angles, professional presentation",
+        "lifestyle_scene": "lifestyle integration, environmental context, natural movement",
+        "premium_reveal": "premium product reveal, dramatic lighting, luxury presentation",
+        "tech_demo": "technology demonstration, interactive elements, modern aesthetic",
+        "organic_flow": "organic flowing movement, natural transitions, smooth animation",
+        "dramatic_lighting": "dramatic lighting changes, cinematic atmosphere, mood enhancement",
+        "close_up_details": "detailed close-up shots, texture focus, premium quality reveal",
+        "environmental_context": "environmental integration, contextual placement, story-driven"
+    }
+    
+    # Build enhanced prompt
+    category_enhancement = category_prompts.get(category, category_prompts["product"])
+    style_enhancement = animation_styles.get(animation_style, animation_styles["smooth_rotation"])
+    
+    enhanced_prompt = f"{base_prompt}, {category_enhancement}, {style_enhancement}, high quality, professional, smooth motion, commercial grade"
+    
+    return enhanced_prompt
 
 @app.get("/health")
 async def health_check():

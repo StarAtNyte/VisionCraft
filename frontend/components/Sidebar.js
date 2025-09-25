@@ -1,10 +1,8 @@
-// Sidebar Component - ProductGenius Style
-const Sidebar = ({ tools, activeToolId, onToolClick }) => {
+// Sidebar Component - ProductGenius Style (Optimized)
+const Sidebar = React.memo(({ tools, activeToolId, onToolClick }) => {
     // Icon mapping for Material Icons
     const iconMap = {
         'upload': 'arrow_forward_ios',
-        'basic': 'close',
-        'ai': 'tune', 
         'shots': 'crop_free',
         'lifestyle': 'person',
         'animation': 'play_arrow',
@@ -35,13 +33,10 @@ const Sidebar = ({ tools, activeToolId, onToolClick }) => {
                             }`}
                         >
                             <span className="material-icons">{iconName}</span>
-                            {tool.id === 'basic' && (
-                                <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-                            )}
                         </button>
                     );
                 })}
             </nav>
         </aside>
     );
-};
+});

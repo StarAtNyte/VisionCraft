@@ -1,5 +1,27 @@
-// Enhanced Main Content Component - AI Generation, Upload, and Lifestyle Galleries
-const MainContent = ({ 
+// Progress Bar Component (Separate to prevent unnecessary re-renders)
+const ProgressBar = React.memo(({ isProcessing, processingText, progress }) => {
+    if (!isProcessing) return null;
+    
+    return (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 z-50 min-w-80">
+            <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
+                <div className="flex-1">
+                    <p className="text-sm font-medium text-text-light dark:text-text-dark">{processingText}</p>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                        <div 
+                            className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                        ></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+
+// Enhanced Main Content Component - AI Generation, Upload, and Lifestyle Galleries (Optimized)
+const MainContent = React.memo(({ 
     uploadedImage, 
     setUploadedImage, 
     isProcessing, 
@@ -56,7 +78,7 @@ const MainContent = ({
     // Auto-collapse when image is uploaded, or manual collapse
     const isCollapsed = (uploadedImage && !sidebarCollapsed) || sidebarCollapsed;
 
-    // AI Edit function for the floating prompt
+    // AI Edit function for the floating prompt - handles different endpoints based on active tool
     const handleAIEdit = async (promptText) => {
         if (!uploadedImage) {
             alert('Please upload an image first');
@@ -69,8 +91,44 @@ const MainContent = ({
         }
 
         setIsProcessing(true);
-        setProcessingText('AI is editing your image...');
         setProgress(0);
+
+        // Determine endpoint and processing text based on active tool
+        let endpoint, requestData, processingMessage;
+        const imageBase64 = uploadedImage.split(',')[1] || uploadedImage;
+
+        if (activeToolId === 'animation') {
+            // Video generation endpoint for animation section
+            endpoint = '/api/generate-video';
+            setProcessingText('AI is creating your animation...');
+            requestData = {
+                image_base64: imageBase64,
+                prompt: promptText.trim(),
+                category: 'product',
+                animation_style: 'smooth_rotation',
+                height: 720,
+                width: 1280,
+                num_frames: 49,
+                guidance_scale: 3.5,
+                num_inference_steps: 30
+            };
+        } else {
+            // Image edit endpoint for color variations and lifestyle mockup sections
+            endpoint = '/api/generate';
+            if (activeToolId === 'shots') {
+                setProcessingText('AI is generating color variation...');
+            } else if (activeToolId === 'lifestyle') {
+                setProcessingText('AI is creating lifestyle mockup...');
+            } else {
+                setProcessingText('AI is editing your image...');
+            }
+            requestData = {
+                image_base64: imageBase64,
+                prompt: promptText.trim(),
+                guidance_scale: 7.5,
+                num_inference_steps: 28
+            };
+        }
 
         const interval = setInterval(() => {
             setProgress(prev => {
@@ -83,17 +141,10 @@ const MainContent = ({
         }, 300);
 
         try {
-            const imageBase64 = uploadedImage.split(',')[1] || uploadedImage;
-            
-            const response = await fetch('/api/generate', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image_base64: imageBase64,
-                    prompt: promptText.trim(),
-                    guidance_scale: 7.5,
-                    num_inference_steps: 28
-                })
+                body: JSON.stringify(requestData)
             });
 
             const result = await response.json();
@@ -101,19 +152,37 @@ const MainContent = ({
             if (result.success) {
                 setProgress(100);
                 setTimeout(() => {
-                    setUploadedImage('data:image/png;base64,' + result.image);
+                    if (activeToolId === 'animation') {
+                        // For animation, update the main area with the generated video
+                        if (result.video) {
+                            const videoData = `data:video/mp4;base64,${result.video}`;
+                            setUploadedImage(videoData);
+                            
+                            // Also add to slideshow if available
+                            if (window.addToSlideshow) {
+                                window.addToSlideshow(
+                                    videoData,
+                                    'Quick Animation',
+                                    'animation'
+                                );
+                            }
+                        }
+                    } else {
+                        // For image edits, update the main image
+                        setUploadedImage('data:image/png;base64,' + result.image);
+                    }
                     setIsProcessing(false);
                     setProgress(0);
                 }, 500);
             } else {
                 setIsProcessing(false);
                 setProgress(0);
-                alert('Error: ' + (result.message || result.detail || 'Failed to edit image'));
+                alert('Error: ' + (result.message || result.detail || 'Failed to process request'));
             }
         } catch (error) {
             setIsProcessing(false);
             setProgress(0);
-            alert('Error editing image: ' + error.message);
+            alert('Error processing request: ' + error.message);
         }
     };
 
@@ -172,7 +241,9 @@ const MainContent = ({
     };
 
     return (
-        <div className="flex h-full w-full bg-gray-900">
+        <>
+            <ProgressBar isProcessing={isProcessing} processingText={processingText} progress={progress} />
+            <div className="flex h-full w-full bg-gray-900">
             {/* Left Column: Generation - Collapsible */}
             <div className={`${isCollapsed ? 'w-12' : 'w-80'} bg-gray-800 border-r border-gray-700 overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out`}>
                 {isCollapsed ? (
@@ -512,19 +583,41 @@ const MainContent = ({
                                 width: '32px',
                                 height: '32px',
                                 borderRadius: '8px',
-                                background: 'linear-gradient(135deg, #8b5cf6 0%, #14b8a6 100%)',
+                                background: activeToolId === 'animation' 
+                                    ? 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)'
+                                    : activeToolId === 'shots'
+                                    ? 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)'
+                                    : activeToolId === 'lifestyle'
+                                    ? 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)'
+                                    : 'linear-gradient(135deg, #8b5cf6 0%, #14b8a6 100%)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0
                             }}>
-                                <Icons.Wand2 style={{ width: '16px', height: '16px', color: 'white' }} />
+                                {activeToolId === 'animation' ? (
+                                    <Icons.Play style={{ width: '16px', height: '16px', color: 'white' }} />
+                                ) : activeToolId === 'shots' ? (
+                                    <Icons.Palette style={{ width: '16px', height: '16px', color: 'white' }} />
+                                ) : activeToolId === 'lifestyle' ? (
+                                    <Icons.Users style={{ width: '16px', height: '16px', color: 'white' }} />
+                                ) : (
+                                    <Icons.Wand2 style={{ width: '16px', height: '16px', color: 'white' }} />
+                                )}
                             </div>
                             
                             <input
                                 id="floating-ai-prompt"
                                 type="text"
-                                placeholder="Describe changes... (e.g., remove background, change to blue)"
+                                placeholder={
+                                    activeToolId === 'animation' 
+                                        ? "Describe animation... (e.g., smooth rotation, floating motion)"
+                                        : activeToolId === 'shots'
+                                        ? "Describe color change... (e.g., change to red, make it blue)"
+                                        : activeToolId === 'lifestyle'
+                                        ? "Describe lifestyle scene... (e.g., person using product in cafe)"
+                                        : "Describe changes... (e.g., remove background, change to blue)"
+                                }
                                 style={{
                                     flex: 1,
                                     background: 'transparent',
@@ -586,16 +679,6 @@ const MainContent = ({
                 </div>
             )}
         </div>
+        </>
     );
-};
-                setIsProcessing(false);
-                setProgress(0);
-                alert('Error: ' + (result.message || result.detail || 'Failed to edit image'));
-            }
-        } catch (error) {
-            setIsProcessing(false);
-            setProgress(0);
-            alert('Error editing image: ' + error.message);
-        }
-    };
-};
+});

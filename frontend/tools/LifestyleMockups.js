@@ -7,6 +7,7 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
     const [selectedVariants, setSelectedVariants] = React.useState([]);
     const [selectAll, setSelectAll] = React.useState(false);
     const [selectedStyle, setSelectedStyle] = React.useState('photorealistic');
+    const [selectedScenarios, setSelectedScenarios] = React.useState([]);
 
     // Enhanced style options for realistic lifestyle scenarios
     const styleOptions = {
@@ -50,27 +51,27 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
             scenarios: [
                 { 
                     name: 'Male Urban Street', 
-                    prompt: 'Professional lifestyle photograph of a young man in his 20s walking confidently down a modern city sidewalk, wearing the shoes naturally on his feet, casual streetwear outfit with jeans and hoodie, golden hour lighting, realistic proportions, photojournalistic style, shot with 50mm lens, natural walking pose, shoes properly fitted and touching the ground, urban architecture background, authentic street photography, no floating objects' 
+                    prompt: 'A young man in his 20s walking on a modern city sidewalk, wearing [PRODUCT] on his feet, casual streetwear with jeans and hoodie, golden hour lighting, realistic scale, natural walking pose, urban background, photorealistic, high detail, professional photography' 
                 },
                 { 
                     name: 'Female Coffee Culture', 
-                    prompt: 'High-quality lifestyle photograph of a young woman in her 20s sitting at a trendy coffee shop table, wearing the shoes naturally while seated, legs crossed under table, holding coffee cup, modern cafe interior with wood and concrete, soft natural lighting through large windows, casual outfit with jeans and sweater, shoes properly positioned on floor, photorealistic style, no cartoonish elements' 
+                    prompt: 'A young woman in her 20s sitting at a cafe table, wearing [PRODUCT], legs visible under table, holding coffee cup, modern cafe interior, soft window lighting, casual outfit with jeans and sweater, photorealistic, natural proportions, lifestyle photography' 
                 },
                 { 
                     name: 'Male Gym Fitness', 
-                    prompt: 'Athletic lifestyle photograph of a fit man in his 30s at a modern gym, wearing the athletic shoes while standing next to gym equipment, workout clothes, natural gym lighting, shoes firmly on gym floor, realistic scale and proportions, professional fitness photography, authentic workout environment, no oversized or floating shoes' 
+                    prompt: 'A fit man in his 30s at a modern gym, wearing [PRODUCT], workout clothes, standing next to gym equipment, realistic gym lighting, athletic footwear properly fitted, professional fitness photography, high detail' 
                 },
                 { 
                     name: 'Female Park Jogger', 
-                    prompt: 'Candid lifestyle photograph of a woman jogger in her 20s taking a break in a city park, wearing the running shoes while sitting on a park bench, athletic wear, natural daylight, shoes naturally positioned on ground, realistic human proportions, documentary-style photography, authentic outdoor setting' 
+                    prompt: 'A woman jogger in her 20s taking a break on a park bench, wearing [PRODUCT], athletic wear, natural daylight, realistic proportions, outdoor park setting, candid lifestyle moment, photorealistic' 
                 },
                 { 
                     name: 'Male Business Casual', 
-                    prompt: 'Professional lifestyle photograph of a businessman in his 30s walking through a modern office lobby, wearing the dress shoes naturally with business casual attire, natural indoor lighting, shoes properly fitted and in contact with polished floor, realistic workplace environment, sophisticated styling' 
+                    prompt: 'A businessman in his 30s walking through a modern office lobby, wearing [PRODUCT], business casual attire, natural indoor lighting, polished floor, professional workplace environment, realistic scale' 
                 },
                 { 
                     name: 'Female Weekend Casual', 
-                    prompt: 'Relaxed lifestyle photograph of a young woman in her 20s shopping at a farmers market, wearing the casual shoes naturally while walking between vendor stalls, weekend outfit with sundress or casual wear, natural outdoor lighting, shoes properly on ground, authentic market environment, realistic proportions' 
+                    prompt: 'A young woman in her 20s at a farmers market, wearing [PRODUCT], weekend outfit with sundress, natural outdoor lighting, market stalls background, walking pose, realistic proportions, lifestyle photography' 
                 }
             ]
         },
@@ -80,27 +81,27 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
             scenarios: [
                 { 
                     name: 'Male Music Producer', 
-                    prompt: 'Professional lifestyle photograph of a young male music producer in his 20s wearing the headphones naturally over his ears while working at a music studio mixing board, modern recording studio environment, professional audio equipment visible, natural studio lighting, realistic headphone placement, authentic workspace setting, high-quality professional photography' 
+                    prompt: 'A young male music producer in his 20s wearing [PRODUCT] over his ears, working at a music studio mixing board, modern recording studio, professional audio equipment, studio lighting, realistic headphone fit, high detail' 
                 },
                 { 
                     name: 'Female Remote Worker', 
-                    prompt: 'Authentic lifestyle photograph of a professional woman in her 30s wearing the headphones while working on laptop at a modern coffee shop, business casual attire, natural cafe lighting, headphones properly positioned on head, realistic work-from-anywhere scene, documentary-style photography, genuine work environment' 
+                    prompt: 'A professional woman in her 30s wearing [PRODUCT] while working on laptop at a coffee shop, business casual attire, natural cafe lighting, realistic headphone placement, work environment, photorealistic' 
                 },
                 { 
                     name: 'Male Gamer', 
-                    prompt: 'Dynamic lifestyle photograph of a young man in his 20s wearing the gaming headphones naturally during an intense gaming session, modern gaming setup with multiple monitors, RGB lighting creating ambient atmosphere, authentic gaming environment, realistic headphone fit, professional esports photography style' 
+                    prompt: 'A young man in his 20s wearing [PRODUCT] during gaming session, modern gaming setup with monitors, RGB lighting, gaming chair, realistic headphone fit, professional gaming environment, high detail' 
                 },
                 { 
                     name: 'Female Commuter', 
-                    prompt: 'Candid lifestyle photograph of a young professional woman wearing the headphones naturally while commuting on public transport, subway or train interior, realistic commuter environment, natural transportation lighting, authentic daily routine scene, photojournalistic style' 
+                    prompt: 'A professional woman wearing [PRODUCT] while commuting on subway train, realistic commuter environment, transportation lighting, daily routine scene, natural headphone placement, photorealistic' 
                 },
                 { 
                     name: 'Male Fitness Audio', 
-                    prompt: 'Athletic lifestyle photograph of a fit man in his 30s wearing the wireless earbuds naturally while working out at gym, exercise equipment visible, natural gym lighting, realistic earbud placement, authentic fitness environment, sports photography style' 
+                    prompt: 'A fit man in his 30s wearing [PRODUCT] wireless earbuds while working out at gym, exercise equipment visible, gym lighting, realistic earbud placement, athletic environment, fitness photography' 
                 },
                 { 
                     name: 'Female Podcast Host', 
-                    prompt: 'Professional lifestyle photograph of a female podcast host in her 20s wearing the headphones naturally while recording in home studio, podcast equipment visible, soft natural lighting, authentic content creation environment, realistic headphone positioning' 
+                    prompt: 'A female podcast host in her 20s wearing [PRODUCT] while recording in home studio, podcast equipment visible, soft lighting, content creation environment, realistic headphone positioning, professional setup' 
                 }
             ]
         },
@@ -110,27 +111,27 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
             scenarios: [
                 { 
                     name: 'Male Developer Desk', 
-                    prompt: 'Professional lifestyle photograph of a male software developer in his 20s using the device naturally at a clean modern desk, multiple monitors visible, natural office lighting, realistic device interaction, authentic workspace environment, professional tech photography, proper device scale and positioning' 
+                    prompt: 'A male software developer in his 20s using [PRODUCT] at a clean modern desk, multiple monitors visible, natural office lighting, realistic device interaction, tech workspace, professional photography, proper scale' 
                 },
                 { 
                     name: 'Female Digital Nomad', 
-                    prompt: 'Authentic lifestyle photograph of a young professional woman using the device naturally while working remotely at a trendy coffee shop, laptop and device on wooden table, casual business attire, natural cafe lighting, realistic work scenario, documentary-style photography' 
+                    prompt: 'A professional woman using [PRODUCT] while working at a trendy coffee shop, laptop on wooden table, casual business attire, natural cafe lighting, realistic work scenario, lifestyle photography' 
                 },
                 { 
                     name: 'Male Home Office', 
-                    prompt: 'Lifestyle photograph of a man in his 30s using the device in his comfortable home office, natural home lighting, authentic work-from-home environment, realistic device usage, cozy professional workspace, proper human-device interaction' 
+                    prompt: 'A man in his 30s using [PRODUCT] in his home office, natural home lighting, work-from-home environment, realistic device usage, cozy workspace, proper human-device interaction, high detail' 
                 },
                 { 
                     name: 'Female Creative Studio', 
-                    prompt: 'Creative lifestyle photograph of a female graphic designer in her 20s using the device naturally in her design studio, creative workspace with design materials, natural studio lighting, authentic creative environment, realistic device interaction' 
+                    prompt: 'A female graphic designer in her 20s using [PRODUCT] in her design studio, creative workspace with design materials, studio lighting, realistic device interaction, creative environment' 
                 },
                 { 
                     name: 'Male Tech Startup', 
-                    prompt: 'Dynamic lifestyle photograph of a young male entrepreneur using the device in a modern tech startup office, open office environment, natural corporate lighting, authentic business setting, realistic technology usage, professional business photography' 
+                    prompt: 'A young male entrepreneur using [PRODUCT] in a modern tech startup office, open office environment, corporate lighting, business setting, realistic technology usage, professional photography' 
                 },
                 { 
                     name: 'Female Student Library', 
-                    prompt: 'Academic lifestyle photograph of a female university student using the device naturally while studying in a modern library, books and notes visible, soft library lighting, authentic study environment, realistic educational setting' 
+                    prompt: 'A university student using [PRODUCT] while studying in a modern library, books and notes visible, soft library lighting, study environment, realistic educational setting, natural interaction' 
                 }
             ]
         },
@@ -140,27 +141,27 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
             scenarios: [
                 { 
                     name: 'Male Fashion Portrait', 
-                    prompt: 'High-fashion lifestyle photograph of a stylish man in his 20s wearing the fashion item naturally as part of a curated outfit, professional fashion photography studio, soft diffused lighting, realistic fabric draping and fit, authentic fashion styling, editorial photography style, proper garment proportions and fit' 
+                    prompt: 'A stylish man in his 20s wearing [PRODUCT] as part of curated outfit, fashion photography studio, soft diffused lighting, realistic fabric and fit, editorial style, proper garment proportions, high fashion' 
                 },
                 { 
                     name: 'Female Street Style', 
-                    prompt: 'Authentic street-style photograph of a fashionable woman in her 20s wearing the clothing item naturally while walking through a trendy neighborhood, natural street lighting, realistic garment movement and fit, genuine street fashion moment, documentary-style photography' 
+                    prompt: 'A fashionable woman in her 20s wearing [PRODUCT] while walking through trendy neighborhood, natural street lighting, realistic garment movement, street fashion, documentary style, urban background' 
                 },
                 { 
                     name: 'Male Business Attire', 
-                    prompt: 'Professional lifestyle photograph of a businessman in his 30s wearing the item naturally as part of his business attire in a modern office environment, natural corporate lighting, realistic professional styling, authentic workplace fashion, proper fit and proportion' 
+                    prompt: 'A businessman in his 30s wearing [PRODUCT] as part of business attire in modern office, natural corporate lighting, professional styling, workplace fashion, realistic fit and proportion' 
                 },
                 { 
                     name: 'Female Social Occasion', 
-                    prompt: 'Elegant lifestyle photograph of a woman in her 20s wearing the fashion item naturally at an upscale social event, sophisticated venue background, natural event lighting, realistic social styling, authentic occasion wear, proper garment draping' 
+                    prompt: 'A woman in her 20s wearing [PRODUCT] at upscale social event, sophisticated venue background, natural event lighting, elegant styling, occasion wear, proper garment draping, high detail' 
                 },
                 { 
                     name: 'Male Casual Weekend', 
-                    prompt: 'Relaxed lifestyle photograph of a young man wearing the clothing item naturally during weekend activities, casual outdoor setting like park or market, natural daylight, authentic casual styling, realistic everyday fashion, genuine leisure moment' 
+                    prompt: 'A young man wearing [PRODUCT] during weekend activities, casual outdoor setting like park, natural daylight, casual styling, everyday fashion, leisure moment, realistic proportions' 
                 },
                 { 
                     name: 'Female Date Night', 
-                    prompt: 'Romantic lifestyle photograph of a young woman wearing the fashion item naturally on a dinner date, upscale restaurant setting, warm ambient lighting, realistic evening wear styling, authentic date night fashion, proper garment fit and elegance' 
+                    prompt: 'A young woman wearing [PRODUCT] on dinner date, upscale restaurant setting, warm ambient lighting, evening wear styling, date night fashion, elegant atmosphere, photorealistic' 
                 }
             ]
         },
@@ -170,27 +171,27 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
             scenarios: [
                 { 
                     name: 'Male Morning Routine', 
-                    prompt: 'Authentic lifestyle photograph of a man in his 30s using the kitchen product naturally during his morning routine in a bright modern kitchen, realistic home environment, natural morning lighting through windows, genuine daily life moment, realistic product usage and scale, warm domestic atmosphere' 
+                    prompt: 'A man in his 30s using [PRODUCT] during morning routine in bright modern kitchen, realistic home environment, natural morning light through windows, daily life moment, proper product scale, warm domestic atmosphere' 
                 },
                 { 
                     name: 'Female Family Dining', 
-                    prompt: 'Warm lifestyle photograph of a woman in her 20s using the product naturally at a beautifully set family dining table, realistic home dining environment, natural indoor lighting, authentic family mealtime, proper product placement and proportions, genuine domestic scene' 
+                    prompt: 'A woman in her 20s using [PRODUCT] at beautifully set family dining table, realistic home dining environment, natural indoor lighting, family mealtime, proper product placement, domestic scene' 
                 },
                 { 
                     name: 'Male Living Space', 
-                    prompt: 'Comfortable lifestyle photograph of a young man using the home product naturally in a stylish modern living room, realistic home decor environment, natural ambient lighting, authentic home lifestyle, proper product integration into living space' 
+                    prompt: 'A young man using [PRODUCT] in stylish modern living room, realistic home decor, natural ambient lighting, home lifestyle, proper product integration, comfortable setting, high detail' 
                 },
                 { 
                     name: 'Female Outdoor Entertaining', 
-                    prompt: 'Natural lifestyle photograph of a woman hosting an outdoor gathering, using the product naturally during a backyard dinner party or picnic, realistic outdoor setting, golden hour lighting, authentic entertaining scenario, genuine social dining moment' 
+                    prompt: 'A woman hosting outdoor gathering using [PRODUCT] during backyard dinner party, realistic outdoor setting, golden hour lighting, entertaining scenario, social dining moment, natural environment' 
                 },
                 { 
                     name: 'Male Home Cooking', 
-                    prompt: 'Culinary lifestyle photograph of a man in his 20s using the kitchen product naturally while cooking in his home kitchen, realistic cooking environment, natural kitchen lighting, authentic food preparation scene, proper product usage in cooking context' 
+                    prompt: 'A man in his 20s using [PRODUCT] while cooking in home kitchen, realistic cooking environment, natural kitchen lighting, food preparation scene, proper product usage, culinary setting' 
                 },
                 { 
                     name: 'Female Cozy Evening', 
-                    prompt: 'Intimate lifestyle photograph of a young woman using the home product naturally during a cozy evening at home, comfortable living room setting, warm lamp lighting, authentic relaxation moment, realistic home comfort scene' 
+                    prompt: 'A young woman using [PRODUCT] during cozy evening at home, comfortable living room, warm lamp lighting, relaxation moment, home comfort scene, intimate atmosphere, photorealistic' 
                 }
             ]
         },
@@ -200,23 +201,24 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
             scenarios: [
                 { 
                     name: 'Female Elegant Portrait', 
-                    prompt: 'Sophisticated portrait photograph of an elegant woman in her 20s wearing the jewelry naturally, professional portrait lighting, realistic jewelry placement and scale, authentic elegant styling, high-end fashion photography style, proper jewelry proportions' 
+                    prompt: 'An elegant woman in her 20s wearing [PRODUCT], professional portrait lighting, realistic jewelry placement and scale, elegant styling, high-end fashion photography, proper proportions, sophisticated' 
                 },
                 { 
                     name: 'Male Watch Lifestyle', 
-                    prompt: 'Lifestyle photograph of a professional man in his 30s wearing the watch naturally during his business day, realistic wrist placement, authentic business environment, natural professional lighting, genuine workplace moment, proper watch scale and fit' 
+                    prompt: 'A professional man in his 30s wearing [PRODUCT] during business day, realistic wrist placement, business environment, natural professional lighting, workplace moment, proper watch scale and fit' 
                 },
                 { 
                     name: 'Female Special Occasion', 
-                    prompt: 'Celebratory lifestyle photograph of a woman wearing the jewelry naturally at a special event like wedding or gala, elegant venue background, sophisticated lighting, realistic formal styling, authentic celebration moment' 
+                    prompt: 'A woman wearing [PRODUCT] at special event like wedding or gala, elegant venue background, sophisticated lighting, formal styling, celebration moment, luxury atmosphere, photorealistic' 
                 },
                 { 
                     name: 'Male Casual Elegance', 
-                    prompt: 'Relaxed lifestyle photograph of a young man wearing the accessory naturally in a casual but refined setting, realistic everyday elegance, natural lighting, authentic personal style moment, proper accessory integration' 
+                    prompt: 'A young man wearing [PRODUCT] in casual but refined setting, everyday elegance, natural lighting, personal style moment, proper accessory integration, relaxed sophistication, high detail' 
                 }
             ]
         }
     };
+    
 
     // Handle category selection
     const handleCategoryChange = (category) => {
@@ -274,7 +276,7 @@ const LifestyleMockupsPanel = React.memo(({ uploadedImage, setUploadedImage, set
                     setProgress((currentStep / totalSteps) * 100);
 
                     const imageBase64 = variant.image.includes('data:image') ? variant.image.split(',')[1] : variant.image;
-                    const stylePrompt = styleOptions[selectedStyle]?.prompt || styleOptions.photorealistic.prompt;
+                    
                     // Create enhanced realistic prompt
                     const basePrompt = scenario.prompt;
                     const stylePrompt = styleOptions[selectedStyle]?.prompt || styleOptions.photorealistic.prompt;

@@ -1,6 +1,15 @@
-// Main App Component
+// Tools configuration (moved outside component to prevent re-creation)
+const TOOLS_CONFIG = [
+    { id: 'upload', name: 'Upload/Import', icon: Icons.Upload, description: 'Upload images or import from URL' },
+    { id: 'shots', name: 'Color Variants', icon: Icons.Palette, description: 'Generate different color variations' },
+    { id: 'adshots', name: 'Ad Shots', icon: Icons.Sparkles, description: 'Create surreal product advertisements' },
+    { id: 'animation', name: 'Ad Videos', icon: Icons.Play, description: 'Create animated product video ads' },
+    { id: '3d', name: '3D Mockups', icon: Icons.Box, description: 'Generate 3D product renders' },
+];
+
+// Main App Component (Performance Optimized)
 const App = () => {
-    const { useState, useCallback } = React;
+    const { useState, useCallback, useMemo } = React;
     
     const [activeToolId, setActiveToolId] = useState(null);
     const [uploadedImage, setUploadedImage] = useState(null);
@@ -9,17 +18,7 @@ const App = () => {
     const [progress, setProgress] = useState(0);
     const [panelClosing, setPanelClosing] = useState(false);
     const [colorVariants, setColorVariants] = useState([]); // Shared state for color variants
-    const [generatedScenarios, setGeneratedScenarios] = useState([]); // Shared state for lifestyle scenarios
-
-    const tools = [
-        { id: 'upload', name: 'Upload/Import', icon: Icons.Upload, description: 'Upload images or import from URL' },
-        { id: 'basic', name: 'Basic Edits', icon: Icons.Sliders, description: 'Crop, rotate, adjust brightness & filters' },
-        { id: 'ai', name: 'AI Edits', icon: Icons.Wand2, description: 'AI-powered editing with Flux integration' },
-        { id: 'shots', name: 'Color Variants', icon: Icons.Palette, description: 'Generate different color variations' },
-        { id: 'lifestyle', name: 'Lifestyle Mockups', icon: Icons.Users, description: 'Show products in real environments' },
-        { id: 'animation', name: 'Animation', icon: Icons.Play, description: 'Create animated product videos' },
-        { id: '3d', name: '3D Mockups', icon: Icons.Box, description: 'Generate 3D product renders' },
-    ];
+    const [generatedAds, setGeneratedAds] = useState([]); // Shared state for ad shots
 
     const handleToolClick = useCallback((toolId) => {
         if (activeToolId === toolId) {
@@ -42,24 +41,21 @@ const App = () => {
         }, 300);
     }, []);
 
+    // Handle logo click - go to starting point (upload)
+    const handleLogoClick = useCallback(() => {
+        if (activeToolId) {
+            // Close any open panel first
+            closePanel();
+        } else {
+            // If no panel is open, open upload panel
+            setActiveToolId('upload');
+        }
+    }, [activeToolId, closePanel]);
+
     // Tool Panel Component
     const ToolPanel = ({ toolId, onClose, isClosing }) => {
         const panels = {
             upload: React.createElement(UploadPanel, { setUploadedImage }),
-            basic: React.createElement(BasicEditsPanel, { 
-                uploadedImage, 
-                setUploadedImage, 
-                setIsProcessing, 
-                setProcessingText, 
-                setProgress 
-            }),
-            ai: React.createElement(AIEditsPanel, { 
-                uploadedImage, 
-                setUploadedImage, 
-                setIsProcessing, 
-                setProcessingText, 
-                setProgress 
-            }),
             shots: React.createElement(ColorVariationsPanel, { 
                 uploadedImage, 
                 setUploadedImage, 
@@ -69,22 +65,25 @@ const App = () => {
                 colorVariants,
                 setColorVariants
             }),
-            lifestyle: React.createElement(LifestyleMockupsPanel, { 
+            adshots: React.createElement(AdShotsPanel, { 
                 uploadedImage, 
                 setUploadedImage, 
                 setIsProcessing, 
                 setProcessingText, 
                 setProgress,
                 colorVariants,
-                generatedScenarios,
-                setGeneratedScenarios
+                generatedAds,
+                setGeneratedAds
             }),
             animation: React.createElement(AnimationPanel, { 
                 uploadedImage, 
+                setUploadedImage,
                 setIsProcessing, 
                 setProcessingText, 
                 setProgress,
-                generatedScenarios
+                generatedAds,
+                setGeneratedAds,
+                colorVariants
             }),
             '3d': React.createElement(ThreeDMockupsPanel, { 
                 uploadedImage, 
@@ -96,11 +95,9 @@ const App = () => {
 
         const toolNames = {
             upload: 'Upload & Import',
-            basic: 'Basic Edits',
-            ai: 'AI Edits',
             shots: 'Color Variations',
-            lifestyle: 'Lifestyle Mockups',
-            animation: 'Animation',
+            adshots: 'Ad Shots',
+            animation: 'Ad Videos',
             '3d': '3D Mockups'
         };
 
@@ -128,7 +125,7 @@ const App = () => {
         <div className="flex h-screen">
             {/* Left Sidebar */}
             <Sidebar 
-                tools={tools} 
+                tools={TOOLS_CONFIG} 
                 activeToolId={activeToolId} 
                 onToolClick={handleToolClick} 
             />
@@ -136,7 +133,7 @@ const App = () => {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col">
                 {/* Top Navigation */}
-                <TopNavigation uploadedImage={uploadedImage} />
+                <TopNavigation uploadedImage={uploadedImage} onLogoClick={handleLogoClick} />
 
                 {/* Content Area with Main and Tool Panel - Full Screen */}
                 <div className="flex-1 flex bg-background-light dark:bg-background-dark p-4">

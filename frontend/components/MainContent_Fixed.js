@@ -188,7 +188,7 @@ const MainContent = ({
         }
     };
 
-    // AI Edit function for the floating prompt
+    // AI Edit function for the floating prompt - now context-aware
     const handleAIEdit = async (promptText) => {
         if (!uploadedImage) {
             // If no image, treat as generation
@@ -203,22 +203,54 @@ const MainContent = ({
         }
 
         setIsProcessing(true);
-        setProcessingText('AI is editing your image...');
         setProgress(0);
         setProgress(10);
 
         try {
             const imageBase64 = uploadedImage.split(',')[1] || uploadedImage;
             
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            // Determine which endpoint to call based on active tool
+            let endpoint = '/api/generate'; // Default for image editing
+            let requestData = {
+                image_base64: imageBase64,
+                prompt: promptText.trim(),
+                guidance_scale: 7.5,
+                num_inference_steps: 28
+            };
+            
+            if (activeToolId === 'animation') {
+                // Call video generation endpoint for animation section
+                endpoint = '/api/generate-video';
+                setProcessingText('AI is creating your animation...');
+                requestData = {
                     image_base64: imageBase64,
                     prompt: promptText.trim(),
-                    guidance_scale: 7.5,
-                    num_inference_steps: 28
-                })
+                    category: 'product',
+                    animation_style: 'smooth_rotation',
+                    height: 720,
+                    width: 1280,
+                    num_frames: 49,
+                    guidance_scale: 3.5,
+                    num_inference_steps: 30,
+                    seed: null
+                };
+            } else {
+                // Call image edit endpoint for color variations, ad shots, and lifestyle mockup sections
+                if (activeToolId === 'shots') {
+                    setProcessingText('AI is generating color variation...');
+                } else if (activeToolId === 'adshots') {
+                    setProcessingText('AI is creating surreal ad shot...');
+                } else if (activeToolId === 'lifestyle') {
+                    setProcessingText('AI is creating lifestyle mockup...');
+                } else {
+                    setProcessingText('AI is editing your image...');
+                }
+            }
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
             });
 
             setProgress(50);
@@ -227,19 +259,31 @@ const MainContent = ({
             if (result.success) {
                 setProgress(100);
                 setTimeout(() => {
-                    setUploadedImage('data:image/png;base64,' + result.image);
+                    if (activeToolId === 'animation') {
+                        // For animation, we don't replace the main image, just show success
+                        // The video will be handled by the Animation panel
+                        alert('Animation created successfully! Check the Animation panel to view and download your video.');
+                    } else {
+                        // For image editing, the result contains image data
+                        const imageData = 'data:image/png;base64,' + result.image;
+                        setUploadedImage(imageData);
+                        // Add to slideshow as image
+                        if (window.addToSlideshow) {
+                            window.addToSlideshow(imageData, 'AI Edit', 'edit');
+                        }
+                    }
                     setIsProcessing(false);
                     setProgress(0);
                 }, 500);
             } else {
                 setIsProcessing(false);
                 setProgress(0);
-                alert('Error: ' + (result.message || result.detail || 'Failed to edit image'));
+                alert('Error: ' + (result.message || result.detail || 'Failed to process request'));
             }
         } catch (error) {
             setIsProcessing(false);
             setProgress(0);
-            alert('Error editing image: ' + error.message);
+            alert('Error processing request: ' + error.message);
         }
     };
 
@@ -452,12 +496,32 @@ const MainContent = ({
             {uploadedImage && (
                 <div className={`absolute ${imageHistory.length > 1 ? 'bottom-28' : 'bottom-8'} w-full ${activeToolId ? 'max-w-3xl' : 'max-w-5xl'} px-8`}>
                     <div className="relative">
-                        <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-primary">
-                            auto_fix_high
+                        <span className={`material-icons absolute left-4 top-1/2 -translate-y-1/2 ${
+                            activeToolId === 'animation' ? 'text-orange-500' :
+                            activeToolId === 'shots' ? 'text-purple-500' :
+                            activeToolId === 'adshots' ? 'text-pink-500' :
+                            activeToolId === 'lifestyle' ? 'text-green-500' :
+                            'text-primary'
+                        }`}>
+                            {activeToolId === 'animation' ? 'play_arrow' :
+                             activeToolId === 'shots' ? 'palette' :
+                             activeToolId === 'adshots' ? 'auto_awesome' :
+                             activeToolId === 'lifestyle' ? 'people' :
+                             'auto_fix_high'}
                         </span>
                         <input 
                             className="w-full bg-surface-light dark:bg-surface-dark border border-gray-300 dark:border-gray-600 rounded-lg pl-12 pr-16 py-3 text-sm focus:ring-primary focus:border-primary shadow-sm" 
-                            placeholder="Describe changes... (e.g., remove background, change to blue)" 
+                            placeholder={
+                                activeToolId === 'animation' 
+                                    ? "Describe animation... (e.g., smooth rotation, floating motion)"
+                                    : activeToolId === 'shots'
+                                    ? "Describe color change... (e.g., change to red, make it blue)"
+                                    : activeToolId === 'adshots'
+                                    ? "Describe surreal ad concept... (e.g., floating in crystal dimension)"
+                                    : activeToolId === 'lifestyle'
+                                    ? "Describe lifestyle scene... (e.g., person using product in cafe)"
+                                    : "Describe changes... (e.g., remove background, change to blue)"
+                            }
                             type="text"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {

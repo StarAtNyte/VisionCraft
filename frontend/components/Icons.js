@@ -35,15 +35,13 @@ const Icons = {
         React.createElement('rect', { x: 16, y: 12, width: 6, height: 6, rx: 1 })
     ),
     Users: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
-        React.createElement('circle', { cx: 12, cy: 7, r: 3 }),
-        React.createElement('path', { d: 'M12 14c-4 0-7 2-7 5v2h14v-2c0-3-3-5-7-5z' }),
-        React.createElement('path', { d: 'M8 21l8-8M16 21l-8-8', opacity: 0.5 })
+        React.createElement('path', { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' }),
+        React.createElement('circle', { cx: 9, cy: 7, r: 4 }),
+        React.createElement('path', { d: 'M22 21v-2a4 4 0 0 0-3-3.87' }),
+        React.createElement('path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' })
     ),
     Play: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
-        React.createElement('polygon', { points: '5,3 19,12 5,21' }),
-        React.createElement('path', { d: 'm22 6-3 3', opacity: 0.6 }),
-        React.createElement('path', { d: 'm22 12-3 3', opacity: 0.6 }),
-        React.createElement('path', { d: 'm22 18-3 3', opacity: 0.6 })
+        React.createElement('polygon', { points: '5,3 19,12 5,21' })
     ),
     Box: (props) => React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', ...props },
         React.createElement('path', { d: 'M12 2L2 7v10l10 5 10-5V7L12 2z' }),
