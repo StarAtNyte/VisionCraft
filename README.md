@@ -12,8 +12,7 @@ A comprehensive AI-powered platform for creating, editing, and transforming prod
 - **Color Variations**: Generate multiple color variants of products
 - **Ad Shot Creation**: Transform products into surreal advertisement scenes
 - **Video Animation**: Create animated product videos with Kling 2.5
-- **3D Model Generation**: Convert 2D images to 3D models with Hunyuan 3D 2.0
-
+  
 ### AI Models & Services
 - **FLUX.1-Kontext**: Advanced image-to-image editing and generation
 - **FAL Kling 2.5**: High-quality video animation generation
