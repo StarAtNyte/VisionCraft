@@ -26,8 +26,7 @@ A comprehensive AI-powered platform for creating, editing, and transforming prod
 ```
 ├── app.py                    # Main FastAPI application
 ├── modal_flux_kontext.py     # FLUX.1-Kontext Modal deployment
-├── fal_kling_animate.py      # FAL Kling 2.5 animation service
-└── wan-huggingface/          # Hunyuan 3D service
+
 ```
 
 ### Frontend Application
