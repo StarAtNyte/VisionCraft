@@ -15,52 +15,52 @@ const AdShotsPanel = React.memo(({ uploadedImage, setUploadedImage, setIsProcess
         neon_cyberpunk: {
             name: 'Neon Cyberpunk',
             description: 'Futuristic cyberpunk aesthetic with neon lights',
-            prompt: 'Create a cyberpunk-inspired product advertisement with intense neon lighting, holographic displays, and futuristic cityscapes. The product should be showcased in a high-tech environment with glowing circuits, digital rain effects, and chrome reflections. Use electric blues, hot pinks, and acid greens with dramatic shadows and volumetric lighting.'
+            prompt: 'Create a cyberpunk-inspired product advertisement set in a dark futuristic cityscape at night with towering skyscrapers covered in neon signs and holographic billboards. The background should feature rain-soaked streets reflecting purple and cyan neon lights, with digital interfaces and circuit patterns overlay effects. The product floats in the center with intense rim lighting, surrounded by glowing particles and electronic glitch effects. Use deep blacks, electric blues, hot pinks, and acid greens.'
         },
         liquid_metal: {
             name: 'Liquid Metal',
             description: 'Flowing metallic surfaces and reflections',
-            prompt: 'Design an advertisement featuring the product surrounded by flowing liquid metal surfaces that reflect and distort reality. Create impossible geometric shapes that morph and flow around the product. Use chrome, gold, and silver tones with mirror-like reflections and fluid dynamics that defy physics.'
+            prompt: 'Create a liquid metal advertisement set in a futuristic industrial environment with flowing mercury-like surfaces covering the ground and walls. The background features molten chrome waterfalls and metallic structures that constantly reshape themselves. The product sits on a pedestal of liquid silver that ripples and reflects multiple distorted versions of itself. Use dramatic industrial lighting with chrome, platinum, and gold reflections creating mirror maze effects.'
         },
         crystal_dimension: {
             name: 'Crystal Dimension',
             description: 'Crystalline structures and prismatic effects',
-            prompt: 'Place the product in a crystalline dimension with massive translucent crystal formations, prismatic light refractions, and rainbow caustics. The environment should feel like the inside of a giant geode with floating crystal shards and beams of pure light creating spectacular color displays.'
+            prompt: 'Place the product inside a massive crystal cave with towering amethyst and quartz formations covering every surface. The background features rainbow light beams refracting through translucent crystal walls, creating prismatic patterns and rainbow caustics everywhere. Floating crystal shards orbit around the product while pure white light streams penetrate from mysterious sources above, splitting into spectacular color displays. The ground is made of polished crystal reflecting everything in kaleidoscopic patterns.'
         },
         floating_cosmos: {
             name: 'Floating Cosmos',
             description: 'Weightless space environment with cosmic elements',
-            prompt: 'Create a cosmic advertisement where the product floats in a surreal space environment with nebulae, star fields, and impossible planetary formations. Add floating geometric shapes, light trails, and cosmic dust particles. Use deep purples, electric blues, and golden highlights with ethereal lighting.'
+            prompt: 'Create a cosmic advertisement set in deep space with swirling nebulae in purple, pink, and blue gradients filling the background. Multiple alien planets and moons hang in the distance while asteroid fields drift by. The product floats weightlessly among glowing star clusters and cosmic dust clouds that form spiraling galaxies. Add shooting stars, aurora-like energy streams, and floating geometric portals. The scene should feel like being inside a cosmic storm of colors and celestial phenomena.'
         },
         abstract_geometry: {
             name: 'Abstract Geometry',
             description: 'Bold geometric shapes and impossible architecture',
-            prompt: 'Design an advertisement with bold, impossible geometric architecture surrounding the product. Create floating platforms, twisted structures, and gravity-defying elements. Use strong contrasts, bold colors, and dramatic lighting to create a sense of scale and wonder.'
+            prompt: 'Create an abstract geometric advertisement in a surreal architectural space with impossible Escher-like structures. The background features floating triangular platforms, twisted cube formations, and spiral staircases that defy gravity. Giant geometric shapes in bold primary colors (red, yellow, blue) rotate slowly through the space. The product sits at the center of intersecting planes and dimensional portals. Use dramatic directional lighting that creates sharp shadows and bold contrasts against a deep black void.'
         },
         minimalist_luxury: {
             name: 'Minimalist Luxury',
             description: 'Apple-style clean luxury aesthetics',
-            prompt: 'Create an ultra-minimalist luxury advertisement with pristine white backgrounds, soft gradient lighting, and premium materials. The product should appear to float with subtle shadows and reflections. Use monochromatic color schemes with gold or silver accents, clean typography, and sophisticated spacing. Think high-end jewelry or tech product campaigns.'
+            prompt: 'Create an ultra-minimalist luxury advertisement in a pristine white infinity room with soft gradient walls that curve seamlessly into the floor and ceiling. The background features subtle pearl-white textures and barely visible geometric patterns. Soft, diffused lighting comes from hidden sources creating gentle shadows. The product floats in the center with perfect reflections on the glossy white floor. Add subtle gold or platinum accents and negative space. The overall feeling should be like being inside a high-end jewelry store or Apple showroom.'
         },
         vintage_poster: {
             name: 'Vintage Poster',
             description: 'Retro advertising poster aesthetics',
-            prompt: 'Design a vintage-style advertisement poster with bold typography, classic color palettes, and nostalgic aesthetics. Use art deco elements, sunburst patterns, and vintage textures. The product should be presented with dramatic perspective and classic advertising language from the 1950s-60s era.'
+            prompt: 'Create a vintage advertisement poster set against a classic 1950s American diner background with checkered floors, neon signs, and chrome details. The background features retro sunburst patterns, art deco geometric borders, and aged paper textures in warm sepia tones. Add vintage typography elements, classic advertising rays emanating from the product, and nostalgic color schemes of cream, burgundy, and gold. Include retro design elements like ribbons, badges, and decorative frames typical of mid-century advertising.'
         },
         explosion_energy: {
             name: 'Explosion Energy',
             description: 'Dynamic energy with explosive elements',
-            prompt: 'Create an high-energy advertisement with explosive visual elements, dynamic motion blur, particle effects, and energy bursts radiating from the product. Use vibrant colors, lightning effects, and kinetic typography. The product should appear as the epicenter of controlled chaos and power.'
+            prompt: 'Create a high-energy advertisement set in an electric storm environment with dark stormy clouds and lightning strikes in the background. The ground cracks and glows with molten energy veins while the product hovers at the center of a controlled explosion. Bright electric arcs, plasma bolts, and energy shockwaves radiate outward in all directions. Use intense oranges, electric blues, and bright whites against a dramatic dark sky filled with energy discharge patterns.'
         },
         underwater_dream: {
             name: 'Underwater Dream',
             description: 'Ethereal underwater fantasy world',
-            prompt: 'Design a dreamy underwater advertisement with the product floating in crystal-clear water, surrounded by flowing fabrics, air bubbles, and ethereal lighting. Add floating elements like flowers, geometric shapes, or light rays penetrating from above. Use aqua blues, pearl whites, and golden highlights.'
+            prompt: 'Create an ethereal underwater advertisement set in a crystal-clear ocean with coral reefs and tropical fish in the background. Shafts of golden sunlight penetrate from the surface above, creating caustic light patterns on the sandy ocean floor. The product floats gracefully surrounded by flowing seaweed, rising air bubbles, and schools of colorful fish. Add floating jellyfish, sea anemones, and underwater flora. Use aqua blues, turquoise, pearl whites, and golden sunbeam highlights.'
         },
         fire_ice: {
             name: 'Fire & Ice',
             description: 'Dramatic contrast of fire and ice elements',
-            prompt: 'Create a dramatic advertisement showcasing the product between contrasting elements of fire and ice. One side should feature intense flames, molten effects, and warm oranges/reds, while the other shows frozen crystals, ice shards, and cool blues. The product sits at the perfect balance point.'
+            prompt: 'Create a dramatic split-world advertisement with the left side featuring a volcanic landscape with flowing lava rivers, molten rock formations, and intense fire effects in warm oranges and reds. The right side shows an arctic environment with massive ice glaciers, frozen waterfalls, and crystal formations in cool blues and whites. The product hovers perfectly at the center where these two worlds meet, with steam and mist effects where fire meets ice. Use dramatic temperature contrast lighting.'
         },
         nature_fusion: {
             name: 'Nature Fusion',
