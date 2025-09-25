@@ -17,7 +17,7 @@ app = FastAPI(title="Make3D Studio", description="Transform ideas into 3D models
 templates = Jinja2Templates(directory="templates")
 
 # Static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
 class GenerateRequest(BaseModel):
     prompt: str
@@ -34,6 +34,11 @@ class BasicEditRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def homepage():
     """Direct to Make3D Studio editor"""
+    return FileResponse("frontend/index.html")
+
+@app.get("/old", response_class=HTMLResponse)
+async def old_editor():
+    """Old editor for comparison"""
     return FileResponse("static/modern_editor_fixed.html")
 
 @app.get("/home", response_class=HTMLResponse)
@@ -593,6 +598,120 @@ async def enhance_image(request: BasicEditRequest):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.post("/api/color-variations")
+async def color_variations(request: dict):
+    """Generate color variations using Modal Labs FLUX.1-Kontext"""
+    try:
+        image_base64 = request.get("image_base64")
+        colors = request.get("colors", [])
+        num_variations = request.get("num_variations", 4)
+        preserve_details = request.get("preserve_details", True)
+        
+        if not image_base64:
+            return {"success": False, "error": "No image provided"}
+        
+        if not colors:
+            return {"success": False, "error": "No colors provided"}
+        
+        # Get Modal app URL from environment variable
+        modal_url = os.getenv("MODAL_FLUX_URL", "https://gpudashboard0--flux-kontext-web-app.modal.run")
+        
+        # Color name to prompt mapping
+        color_prompts = {
+            "#dc2626": "Transform the product to elegant red color scheme, vibrant red finish, professional red coating",
+            "#2563eb": "Transform the product to deep blue color scheme, rich navy blue finish, vibrant blue coating", 
+            "#16a34a": "Transform the product to forest green color scheme, natural green finish, deep emerald green coating",
+            "#ea580c": "Transform the product to bright orange color scheme, vibrant orange finish, energetic orange coating",
+            "#9333ea": "Transform the product to elegant purple color scheme, rich purple finish, luxurious purple coating",
+            "#f59e0b": "Transform the product to golden yellow color scheme, warm gold finish, premium golden coating",
+            "#1f2937": "Transform the product to elegant matte black color scheme, sophisticated dark finish, premium black coating",
+            "#f9fafb": "Transform the product to clean pure white color scheme, pristine white finish, minimalist white coating",
+            "#f472b6": "Transform the product to soft pink color scheme, elegant pink finish, stylish rose coating",
+            "#10b981": "Transform the product to mint green color scheme, fresh mint finish, modern teal coating",
+            "#0ea5e9": "Transform the product to sky blue color scheme, bright cyan finish, modern blue coating",
+            "#a855f7": "Transform the product to lavender purple color scheme, soft purple finish, elegant violet coating"
+        }
+        
+        variants = []
+        
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            for i, color in enumerate(colors[:num_variations]):
+                try:
+                    # Get color-specific prompt or use generic transformation
+                    color_prompt = color_prompts.get(color, f"Transform the product to {color} color scheme, maintaining all original design features and proportions")
+                    
+                    full_prompt = f"{color_prompt}. Professional product photography, clean white background, studio lighting, high-quality commercial shot, maintain original shape and details"
+                    if preserve_details:
+                        full_prompt += ", preserve textures and shadows intact"
+                    
+                    response = await client.post(
+                        f"{modal_url}/generate",
+                        json={
+                            "image_base64": image_base64,
+                            "prompt": full_prompt,
+                            "guidance_scale": 7.0,
+                            "num_inference_steps": 25
+                        }
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get("success"):
+                            variants.append({
+                                "name": f"Color Variant {i+1}",
+                                "color": color,
+                                "image": f"data:image/png;base64,{result['image']}"
+                            })
+                        else:
+                            print(f"Modal error for color {color}: {result.get('message', 'Unknown error')}")
+                    else:
+                        print(f"HTTP error for color {color}: {response.status_code}")
+                        
+                except Exception as e:
+                    print(f"Error generating variant for color {color}: {str(e)}")
+                    continue
+        
+        if variants:
+            return {"success": True, "variants": variants}
+        else:
+            return {"success": False, "error": "Failed to generate any color variations"}
+        
+    except Exception as e:
+        print(f"Color variations error: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/basic-edit")
+async def basic_edit(request: dict):
+    """Basic image editing operations"""
+    try:
+        image_base64 = request.get("image_base64")
+        operation = request.get("operation")
+        
+        # Decode image
+        image_data = base64.b64decode(image_base64)
+        img = Image.open(io.BytesIO(image_data))
+        
+        # Apply operation
+        if operation == "rotate":
+            img = img.rotate(90, expand=True)
+        elif operation == "crop":
+            # Crop to square
+            width, height = img.size
+            size = min(width, height)
+            left = (width - size) // 2
+            top = (height - size) // 2
+            img = img.crop((left, top, left + size, top + size))
+        
+        # Convert back to base64
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        result_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        return {"success": True, "image": result_base64}
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 @app.post("/api/crop-image")
 async def crop_image(request: BasicEditRequest):
     """Crop image to square aspect ratio"""
@@ -623,6 +742,127 @@ async def crop_image(request: BasicEditRequest):
         
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@app.post("/api/lifestyle-mockup")
+async def lifestyle_mockup(request: dict):
+    """Generate lifestyle mockups using Modal Labs FLUX.1-Kontext"""
+    try:
+        image_base64 = request.get("image_base64")
+        scene = request.get("scene")
+        style = request.get("style")
+        
+        if not image_base64:
+            return {"success": False, "error": "No image provided"}
+        
+        # Get Modal app URL from environment variable
+        modal_url = os.getenv("MODAL_FLUX_URL", "https://gpudashboard0--flux-kontext-web-app.modal.run")
+        
+        # Create lifestyle prompt based on scene and style
+        scene_prompts = {
+            'living-room': 'Product placed in a modern living room setting, cozy atmosphere, natural lighting, home lifestyle',
+            'kitchen': 'Product in a modern kitchen environment, bright lighting, culinary lifestyle, home cooking scene',
+            'office': 'Product in a professional office workspace, clean desk setup, business environment, productivity lifestyle',
+            'bedroom': 'Product in a comfortable bedroom setting, soft lighting, relaxing atmosphere, personal space',
+            'outdoor': 'Product in a natural outdoor setting, fresh air environment, outdoor lifestyle, nature scene',
+            'cafe': 'Product in a trendy café atmosphere, coffee shop environment, social lifestyle, urban setting'
+        }
+        
+        style_modifiers = {
+            'modern': 'clean, minimalist aesthetic, contemporary design',
+            'rustic': 'warm, natural materials, cozy atmosphere',
+            'industrial': 'urban, edgy vibe, modern industrial design',
+            'scandinavian': 'light, airy Nordic style, minimalist approach',
+            'bohemian': 'eclectic, artistic feel, creative atmosphere'
+        }
+        
+        base_prompt = scene_prompts.get(scene, scene_prompts['living-room'])
+        style_modifier = style_modifiers.get(style, style_modifiers['modern'])
+        
+        full_prompt = f"{base_prompt}, {style_modifier}. Professional lifestyle photography, high quality, realistic lighting, commercial photography style."
+        
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(
+                f"{modal_url}/generate",
+                json={
+                    "image_base64": image_base64,
+                    "prompt": full_prompt,
+                    "guidance_scale": 6.5,
+                    "num_inference_steps": 25
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("success"):
+                    return {
+                        "success": True, 
+                        "image": f"data:image/png;base64,{result['image']}",
+                        "scene": scene,
+                        "style": style
+                    }
+                else:
+                    return {"success": False, "error": result.get('message', 'Unknown error')}
+            else:
+                return {"success": False, "error": f"Modal service error: {response.text}"}
+                
+    except Exception as e:
+        print(f"Lifestyle mockup error: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/generate-video")
+async def generate_video(request: dict):
+    """Generate animated video using WAN 2.2 I2V"""
+    try:
+        image_base64 = request.get("image_base64")
+        prompt = request.get("prompt", "smooth product animation")
+        category = request.get("category", "product")
+        animation_style = request.get("animation_style", "smooth_rotation")
+        
+        if not image_base64:
+            return {"success": False, "error": "No image provided"}
+        
+        # Get WAN Modal app URL from environment variable
+        wan_url = os.getenv("MODAL_WAN_URL", "https://gpudashboard0--wan-animate-web-app.modal.run")
+        
+        # Prepare request data for WAN 2.2 I2V
+        request_data = {
+            "image_base64": image_base64,
+            "prompt": prompt,
+            "category": category,
+            "animation_style": animation_style,
+            "height": 720,
+            "width": 1280,
+            "num_frames": 49,
+            "guidance_scale": 3.5,
+            "num_inference_steps": 30,
+            "seed": None
+        }
+        
+        print(f"Sending video request to WAN: {request_data}")  # Debug log
+        
+        async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minute timeout for video
+            response = await client.post(
+                f"{wan_url}/generate",
+                json=request_data
+            )
+            
+            print(f"WAN response status: {response.status_code}")  # Debug log
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                error_text = response.text
+                print(f"WAN error response: {error_text}")  # Debug log
+                raise HTTPException(
+                    status_code=response.status_code, 
+                    detail=f"WAN service error: {error_text}"
+                )
+                
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Video generation timeout - please try again")
+    except Exception as e:
+        print(f"Exception in generate_video: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():

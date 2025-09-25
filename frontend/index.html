@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionCraft - AI Product Image Creator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/frontend/styles/main.css?v=5">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#8B5CF6", // A vibrant purple
+                        "background-light": "#F9FAFB", // A very light gray
+                        "background-dark": "#111827", // A deep, dark blue
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1F2937",
+                        "text-light": "#1F2937",
+                        "text-dark": "#F9FAFB",
+                        "subtle-light": "#6B7280",
+                        "subtle-dark": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        'DEFAULT': '0.5rem',
+                        'lg': '0.75rem',
+                        'xl': '1rem'
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .material-icons {
+            font-size: 20px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+    <div id="root"></div>
+
+    <!-- Core Components -->
+    <script type="text/babel" src="/frontend/components/Icons.js?v=4"></script>
+    <script type="text/babel" src="/frontend/components/Sidebar.js?v=4"></script>
+    <script type="text/babel" src="/frontend/components/TopNavigation.js?v=4"></script>
+    <script type="text/babel" src="/frontend/components/MainContent_Fixed.js?v=4"></script>
+    
+    <!-- Tool Panels -->
+    <script type="text/babel" src="/frontend/tools/BasicEdits.js?v=4"></script>
+    <script type="text/babel" src="/frontend/tools/LifestyleMockups.js?v=4"></script>
+    <script type="text/babel" src="/frontend/tools/ColorVariations_New.js?v=5"></script>
+    <script type="text/babel" src="/frontend/tools/AIEdits.js?v=5"></script>
+    <script type="text/babel" src="/frontend/tools/Upload.js?v=5"></script>
+    <script type="text/babel" src="/frontend/tools/Animation.js?v=5"></script>
+    <script type="text/babel" src="/frontend/tools/ThreeDMockups.js?v=5"></script>
+    
+    <!-- Main App -->
+    <script type="text/babel" src="/frontend/App.js?v=6"></script>
+</body>
+</html>

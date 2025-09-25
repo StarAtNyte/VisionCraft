@@ -33,9 +33,11 @@ volume = modal.Volume.from_name("flux-kontext-cache", create_if_missing=True)
     image=image,
     gpu="A100-40GB",
     volumes={"/models": volume},
-    timeout=600,
-    scaledown_window=300,
-    secrets=[modal.Secret.from_name("huggingface")]
+    timeout=900,
+    container_idle_timeout=600,
+    allow_concurrent_inputs=1,
+    secrets=[modal.Secret.from_name("huggingface")],
+    scaledown_window=1800,
 )
 class FluxKontext:
     
@@ -43,36 +45,25 @@ class FluxKontext:
     def load_model(self):
         """Load FLUX.1-Kontext model"""
         import torch
-        from diffusers import FluxKontextPipeline, FluxTransformer2DModel
-        from torchao.quantization import quantize_, int8_weight_only
+        from diffusers import FluxKontextPipeline
         import os
         
-        # Set cache directory
+        # Set Hugging Face cache directory to the persistent volume
         os.environ['HF_HOME'] = '/models/huggingface'
+        hf_token = os.getenv("HF_TOKEN")
+        if not hf_token:
+            raise ValueError("Hugging Face token not found. Please create a Modal secret named 'huggingface' with your token.")
         
-        print("Loading FLUX.1-Kontext model...")
-        
-        # Load transformer with quantization
-        transformer = FluxTransformer2DModel.from_pretrained(
-            "black-forest-labs/FLUX.1-Kontext-dev",
-            subfolder="transformer",
-            torch_dtype=torch.bfloat16,
-            cache_dir="/models/huggingface",
-            token=os.getenv("HF_TOKEN")
-        )
-        
-        quantize_(transformer, int8_weight_only())
-        
-        # Load pipeline
+        print("Loading FLUX.1-Kontext pipeline...")
         self.pipe = FluxKontextPipeline.from_pretrained(
             "black-forest-labs/FLUX.1-Kontext-dev",
-            transformer=transformer,
             torch_dtype=torch.bfloat16,
             cache_dir="/models/huggingface",
-            token=os.getenv("HF_TOKEN")
+            token=hf_token
         )
         
-        self.pipe.enable_model_cpu_offload()
+        # Move the entire pipeline to the GPU
+        self.pipe.to("cuda")
         
         print("Model loaded successfully!")
     
@@ -106,22 +97,28 @@ class FluxKontext:
                 image_data = base64.b64decode(image_base64)
                 input_image = Image.open(io.BytesIO(image_data)).convert('RGB')
                 
+                # Use the same approach as the working rugRemover
+                import torch
                 result = self.pipe(
                     image=input_image,
                     prompt=prompt,
                     guidance_scale=guidance_scale,
                     num_inference_steps=num_inference_steps,
+                    width=input_image.width,
                     height=input_image.height,
-                    width=input_image.width
+                    generator=torch.Generator().manual_seed(42)
                 )
             else:
                 # Text-to-image generation mode
+                # Text-to-image generation mode
+                import torch
                 result = self.pipe(
                     prompt=prompt,
                     guidance_scale=guidance_scale,
                     num_inference_steps=num_inference_steps,
+                    width=width,
                     height=height,
-                    width=width
+                    generator=torch.Generator().manual_seed(42)
                 )
             
             # Convert output to base64

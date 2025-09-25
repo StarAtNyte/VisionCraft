@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:huggingface.co)",
+      "WebFetch(domain:github.com)",
+      "Bash(modal deploy:*)"
+    ],
+    "deny": []
+  }
+}
