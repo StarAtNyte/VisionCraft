@@ -2,6 +2,8 @@
 
 A comprehensive AI-powered platform for creating, editing, and transforming product images into professional marketing materials. Built with FastAPI, React, and powered by cutting-edge AI models including **FLUX.1-Kontext** for advanced image editing.
 
+[![VisionCraft Demo](https://img.youtube.com/vi/yGRfKz4muPA/maxresdefault.jpg)](https://youtu.be/yGRfKz4muPA)
+
 ## 🚀 Features
 
 ### Core Capabilities
